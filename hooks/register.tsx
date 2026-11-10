@@ -5,7 +5,7 @@ import type { Bucket, HistoryRow, Ledger, Live, Snapshot, Tab, View } from '../t
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.9.3'
+const VERSION = '0.9.4'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -591,9 +591,11 @@ export const register: Register = on => {
             <Text color={level(percent)}>{'█'.repeat(full)}</Text>
             <Text color={GRAY}>{'─'.repeat(barWidth - full)}</Text>
           </Text>
-          <Text color={level(percent)} bold>
-            {right}
-          </Text>
+          <Box flexShrink={0}>
+            <Text color={level(percent)} bold>
+              {right}
+            </Text>
+          </Box>
         </Box>
       )
     }
@@ -697,9 +699,11 @@ export const register: Register = on => {
                       <Text color={i === 0 && lv.isRunning ? GREEN : GRAY}>● </Text>
                       {p.text ? short(p.text, 60) : `prompt #${p.n}`}
                     </Text>
-                    <Text color={GRAY}>
-                      {p.requests}× {money(rate === undefined ? undefined : p.weight * rate)}
-                    </Text>
+                    <Box flexShrink={0}>
+                      <Text color={GRAY}>
+                        {p.requests}× {money(rate === undefined ? undefined : p.weight * rate)}
+                      </Text>
+                    </Box>
                   </Box>
                 ))}
               </Box>
@@ -926,9 +930,11 @@ export const register: Register = on => {
                         <Text color={color(i)}>■ </Text>
                         {key}
                       </Text>
-                      <Text color={GRAY}>
-                        {Math.round((c / sum) * 100)}% <Text color={ORANGE}>{money(c)}</Text>
-                      </Text>
+                      <Box flexShrink={0}>
+                        <Text color={GRAY}>
+                          {Math.round((c / sum) * 100)}% <Text color={ORANGE}>{money(c)}</Text>
+                        </Text>
+                      </Box>
                     </Box>
                   ))}
                 </Box>
@@ -1050,9 +1056,11 @@ export const register: Register = on => {
                     <Text color={GRAY}>{clockTime(r.startedAt)} </Text>
                     {r.title || 'Untitled session'}
                   </Text>
-                  <Text color={GRAY}>
-                    {r.prompts}p <Text color={ORANGE}>{money(r.cost)}</Text>
-                  </Text>
+                  <Box flexShrink={0}>
+                    <Text color={GRAY}>
+                      {r.prompts}p <Text color={ORANGE}>{money(r.cost)}</Text>
+                    </Text>
+                  </Box>
                 </Box>
               ))}
             </Box>
