@@ -5,7 +5,7 @@ import type { Bucket, HistoryRow, Ledger, Live, Snapshot, StatusStyle, Tab, View
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.9.8'
+const VERSION = '0.9.9'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -73,9 +73,20 @@ const toSnapshot = (u: {
 // units by Anthropic's price ratios (cache read 0.1x, cache write 1.25x,
 // output 5x) and its model's relative input price, so every share of the
 // total (a prompt, a kind of token, a model) is that weight times one rate.
-const family = (model: string) =>
-  model.includes('opus') ? 'opus' : model.includes('sonnet') ? 'sonnet' : model.includes('haiku') ? 'haiku' : model
-const priceOf = (fam: string) => (fam === 'haiku' ? 1 : fam === 'sonnet' ? 3 : 5)
+const FAMILIES = ['fable', 'mythos', 'opus', 'sonnet', 'haiku'] as const
+const family = (model: string) => FAMILIES.find(f => model.includes(f)) ?? model
+// Input $/MTok, from Anthropic's price list: Fable and Mythos 5.2 $8, Opus 5.5
+// $4, Sonnet 5.5 $2, Haiku 5.5 $0.10. The 4.x generation priced Opus at $5,
+// Sonnet at $3 and Haiku at $1, so a full model id with "-4-" gets those.
+// Only the ratios matter: the shares still add up to the real total.
+const priceOf = (model: string) => {
+  const fam = family(model)
+  const older = /-4-/.test(model)
+  if (fam === 'fable' || fam === 'mythos') return 8
+  if (fam === 'sonnet') return older ? 3 : 2
+  if (fam === 'haiku') return older ? 1 : 0.1
+  return older ? 5 : 4
+}
 
 const weigh = (u: TurnUsage): Bucket => {
   const p = priceOf(family(u.model))
@@ -395,6 +406,17 @@ const checkBudget = async ($: EngineInterface, rows: HistoryRow[], now: number) 
   )
 }
 
+/**
+ * A turn the app starts by itself (a subagent's report, a background task's
+ * notice) arrives as tagged text, not as something the person typed; name it.
+ */
+const promptLabel = (text: string) => {
+  const tag = /^\s*<([a-z-]+)[\s>]/.exec(text)?.[1]
+  if (tag === 'agent-message' || tag === 'task-notification') return '↳ subagent report'
+  if (tag === 'side-sessions-event' || tag === 'ci-monitor-event') return '↳ automatic event'
+  return text
+}
+
 /** Draws the status line in the chosen style, or clears it when off. */
 const showStatus = async ($: EngineInterface) => {
   const style = await read($, statusStyle)
@@ -529,14 +551,15 @@ export const register: Register = on => {
   on('turn.start', async ($, e, next) => {
     if (!e.agentId) {
       const now = await $.clock.now()
+      const text = promptLabel(e.text)
       await update($, ledger, l => ({
         ...l,
         promptCount: l.promptCount + 1,
-        prompts: [...l.prompts, { n: l.promptCount + 1, text: short(e.text, 120), requests: 0, weight: 0 }].slice(-50),
+        prompts: [...l.prompts, { n: l.promptCount + 1, text: short(text, 120), requests: 0, weight: 0 }].slice(-50),
       })).catch(() => undefined)
       await update($, live, () => ({
         isRunning: true,
-        promptText: short(e.text, 200),
+        promptText: short(text, 200),
         startedAt: now,
         requests: 0,
         toolCount: 0,

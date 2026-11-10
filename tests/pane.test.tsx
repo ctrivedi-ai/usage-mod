@@ -43,7 +43,7 @@ const engine = (on: On, onStatus: (text: string | undefined) => void = () => {},
     toolUses: [],
     stopReason: 'end_turn',
     usage: {
-      model: 'claude-opus-5-5',
+      model: e.model,
       input_tokens: 1_000,
       output_tokens: 2_000,
       cache_read_input_tokens: 40_000,
@@ -88,7 +88,7 @@ test('the session tab shows cost, limits, prompts, breakdown and tokens, on ever
     expect(await ui.find({ type: 'Text', text: /40k/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /isn't billed per token/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /tokens of context per request/ })).toBeUndefined()
-    expect(await ui.find({ type: 'Text', text: /usage-mod v0.9.8/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /usage-mod v0.9.9/ })).toBeDefined()
     await ui.unmount()
   }
 })
@@ -293,4 +293,31 @@ test('a stored status style carries over to a new session', async ($, on) => {
   await oneTurn($)
 
   expect(lines.at(-1)).toBe('5h 40% ↺26m · today $1.00 · $1.00 · ctx 23%')
+})
+
+test('Fable is named as a model, and a subagent report is not shown as a typed prompt', async ($, on) => {
+  engine(on)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.turn.start({ text: '<agent-message from="abc123">[Subagent hand-back] done</agent-message>', turnId: 't1' })
+  for (const model of ['claude-opus-5-5', 'claude-fable-5-2']) {
+    const step = $.turn.step({ turnId: 't1', index: 0, model, messageCount: 1 })
+    for await (const _ of step);
+    await step.result
+  }
+  await $.turn.complete({ answer: 'done', reason: 'answer', durationMs: 1, isAborted: false, turnId: 't1' })
+  await $.session.measure({
+    context: { tokens: 45_000, window: 200_000, percent: 23 },
+    cost: { usd: 3 },
+    rateLimits: [],
+    changed: ['context', 'cost'],
+  })
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  // Same tokens at twice Opus 5.5's price: a third of $3 to opus, two thirds to fable.
+  expect(await ui.find({ type: 'Text', text: /opus 33% \$1\.00/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /fable 67% \$2\.00/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /claude-fable/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /↳ subagent report/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /agent-message/ })).toBeUndefined()
+  await ui.unmount()
 })

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.9
+
+- Fable and Mythos show as "fable" and "mythos" in the model breakdowns, instead of their full model ids.
+- The per-model, per-prompt and per-token-kind estimates use current prices: Fable/Mythos 8, Opus 4, Sonnet 2 and Haiku 0.1 per million input tokens. 4.x models keep their own prices (Opus 5, Sonnet 3, Haiku 1). The session total was always exact; this only changes how it's split.
+- A turn started by a subagent's report or a background event shows in Prompts as "↳ subagent report" or "↳ automatic event", not as raw tagged text. Its cost still counts.
+
 ## 0.9.8
 
 - The full status line now leads with the 5-hour and 7-day limits and their reset times, then today's spend, the session cost and context: `5h 25% ↺3h10m · 7d 10% ↺4d8h · today $7.29 · $4.43 · ctx 18%`. The desktop footer shows only about 40 characters, so the reset times now stay visible there. The context token count is gone; the percentage and the pane still show it.
