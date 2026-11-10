@@ -5,7 +5,7 @@ import type { Bucket, HistoryRow, Ledger, Live, Snapshot, Tab, View } from '../t
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.9.0'
+const VERSION = '0.9.1'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -1009,12 +1009,16 @@ export const register: Register = on => {
               <Button
                 key="export"
                 plain
-                label="⤓ Export CSV"
+                label="Export CSV"
                 onPress={async () => {
                   const { path } = await exportHistory($).catch(() => ({ path: '' }))
                   $.ui.toast(path ? `Saved ${path}` : 'Export failed', { timeoutMs: 8000 })
                 }}
-              />
+              >
+                <Text color={BLUE} bold>
+                  ⇩ Export CSV
+                </Text>
+              </Button>
             </Box>
             {budgetLine}
           </Box>
