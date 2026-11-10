@@ -88,7 +88,7 @@ test('the session tab shows cost, limits, prompts, breakdown and tokens, on ever
     expect(await ui.find({ type: 'Text', text: /40k/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /isn't billed per token/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /tokens of context per request/ })).toBeUndefined()
-    expect(await ui.find({ type: 'Text', text: /usage-mod v0.9.10/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /usage-mod v0.9.11/ })).toBeDefined()
     await ui.unmount()
   }
 })
@@ -321,5 +321,23 @@ test('Fable is named as a model, and a subagent report is not shown as a typed p
   expect(await ui.find({ type: 'Text', text: /claude-fable/ })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /↳ subagent report/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /agent-message/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a model saved under its full id before v0.9.9 shows under its family name', async ($, on) => {
+  const now = Date.parse('2026-01-01T00:00:00Z')
+  engine(on, undefined, {
+    history: [
+      { id: 'earlier', startedAt: now - 60_000, updatedAt: now - 60_000, cost: 3, prompts: 2, title: 'Earlier', models: { opus: 2, 'claude-fable-5-2': 1 } },
+    ],
+  })
+  await oneTurn($)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'tab-history' })
+  // This week: opus $2 plus this session's $1, and fable $1.
+  expect(await ui.find({ type: 'Text', text: /fable/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /claude-fable/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /25% \$1\.00/ })).toBeDefined()
   await ui.unmount()
 })

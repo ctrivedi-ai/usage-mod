@@ -5,7 +5,7 @@ import type { Bucket, HistoryRow, Ledger, Live, Snapshot, StatusStyle, Tab, View
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.9.10'
+const VERSION = '0.9.11'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -350,7 +350,16 @@ const spendBy = (rows: HistoryRow[], split: (r: HistoryRow) => [string, number][
   return [...sorted.slice(0, 3), [`${rest.length} others`, rest.reduce((a, [, c]) => a + c, 0)] as [string, number]]
 }
 
-const byModel = (r: HistoryRow): [string, number][] => (r.models ? Object.entries(r.models) : [['not tracked', r.cost]])
+/**
+ * Merges model entries under their family name. Before v0.9.9 a model the mod
+ * didn't know (Fable) was saved under its full id; this shows it as "fable".
+ */
+const byFamily = (models: Record<string, number>): [string, number][] => {
+  const merged: Record<string, number> = {}
+  for (const [m, v] of Object.entries(models)) merged[family(m)] = (merged[family(m)] ?? 0) + v
+  return Object.entries(merged)
+}
+const byModel = (r: HistoryRow): [string, number][] => (r.models ? byFamily(r.models) : [['not tracked', r.cost]])
 const byProject = (r: HistoryRow): [string, number][] => [[r.project ? projectName(r.project) : 'not recorded', r.cost]]
 
 /** This period so far against the one before, up to the same point in it; pct is undefined with nothing to compare. */
@@ -755,7 +764,7 @@ export const register: Register = on => {
       const recent = [...l.prompts].reverse().slice(0, 6)
       const top = l.prompts.reduce<(typeof l.prompts)[number] | undefined>((a, p) => (!a || p.weight > a.weight ? p : a), undefined)
       const total = l.main + l.sub
-      const models = Object.entries(l.byModel).sort((a, b) => b[1] - a[1])
+      const models = byFamily(l.byModel).sort((a, b) => b[1] - a[1])
       const kinds = [
         { label: 'new input', color: BLUE, tokens: l.tokens.input, weight: l.weights.input },
         { label: 'cache read', color: GREEN, tokens: l.tokens.cacheRead, weight: l.weights.cacheRead },

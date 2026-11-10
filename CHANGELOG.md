@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.11
+
+- Model breakdowns group saved entries by family when drawn, so a model recorded under its full id before 0.9.9 (such as `claude-fable-5-2`) now shows as "fable". This applies to Session → Breakdown and History → This week by model. Saved data is unchanged.
+
 ## 0.9.10
 
 - Cache reads are weighed at each model's real rate: 0.025× input on Fable and Mythos 5.1/5.2, 0.05× on Opus 5.5 and Sonnet 5.5, and 0.1× elsewhere. Cache reads used to be weighed at 0.1× for every model, which made them look like too large a share of the cost in Tokens, Prompts and the per-model split.
