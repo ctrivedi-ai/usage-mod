@@ -5,7 +5,7 @@ import type { Bucket, HistoryRow, Ledger, Live, Snapshot, StatusStyle, Tab, View
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.9.6'
+const VERSION = '0.9.7'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -222,7 +222,8 @@ const HEAT_LEFT = 28
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 // Nothing, then four steps of the orange. Translucent, so the squares sit
 // right on a dark or a light background alike.
-const HEAT = ['rgba(176,174,165,0.22)', 'rgba(217,119,87,0.35)', 'rgba(217,119,87,0.55)', 'rgba(217,119,87,0.78)', ORANGE]
+// The empty step is a darker grey than the palette's, so it still shows on white.
+const HEAT = ['rgba(139,136,127,0.32)', 'rgba(217,119,87,0.35)', 'rgba(217,119,87,0.55)', 'rgba(217,119,87,0.78)', ORANGE]
 const HEAT_TEXT = ['·', '░', '▒', '▓', '█']
 
 const heatLevel = (v: number, max: number) => (v <= 0 || max <= 0 ? 0 : Math.max(1, Math.ceil((v / max) * 4)))
@@ -628,8 +629,8 @@ export const register: Register = on => {
     // so leave it slack; and size each bar around its own right-hand text, or
     // a long one ("15% ↺3h37m") wraps under the bar.
     const meterRoom = e.surface === 'terminal' ? columns : Math.floor(columns * 0.8)
-    const meter = (label: string, percent: number, right: string) => {
-      const barWidth = Math.max(6, Math.min(60, meterRoom - 4 - right.length - 2))
+    const meter = (label: string, percent: number, right: string, rightRoom = right.length) => {
+      const barWidth = Math.max(6, Math.min(60, meterRoom - 4 - Math.max(rightRoom, right.length) - 2))
       const full = Math.max(percent > 0 ? 1 : 0, Math.round((Math.min(100, percent) / 100) * barWidth))
       return (
         <Box justifyContent="space-between">
@@ -696,11 +697,15 @@ export const register: Register = on => {
       </Box>
     )
 
+    // The bars share one width, set by the longest right-hand text, so their
+    // ends line up.
+    const ctxRight = `${s.contextPercent}% ${fmt(s.contextTokens ?? 0)}/${fmt(s.contextWindow)}`
+    const limitRights = s.rateLimits.map(r => `${r.percentUsed}%${resetIn(r.resetsAt, now)}`)
+    const rightRoom = Math.max(0, ...[s.contextPercent !== undefined ? ctxRight : '', ...limitRights].map(t => t.length))
     const limits = (
       <Box flexDirection="column">
-        {s.contextPercent !== undefined &&
-          meter('ctx', s.contextPercent, `${s.contextPercent}% ${fmt(s.contextTokens ?? 0)}/${fmt(s.contextWindow)}`)}
-        {s.rateLimits.map(r => meter(windowLabel(r.kind), r.percentUsed, `${r.percentUsed}%${resetIn(r.resetsAt, now)}`))}
+        {s.contextPercent !== undefined && meter('ctx', s.contextPercent, ctxRight, rightRoom)}
+        {s.rateLimits.map((r, i) => meter(windowLabel(r.kind), r.percentUsed, limitRights[i] ?? '', rightRoom))}
       </Box>
     )
 

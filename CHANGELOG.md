@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.7
+
+- The context, 5-hour and 7-day bars are all the same width, so their ends line up.
+- Empty days in the activity heatmap are darker, so they show on a light background.
+
 ## 0.9.6
 
 - New `/usage-status` command for the status line under the prompt:
