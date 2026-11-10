@@ -5,7 +5,7 @@ import type { Bucket, HistoryRow, Ledger, Live, Snapshot, StatusStyle, Tab, View
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.9.9'
+const VERSION = '0.9.10'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -70,30 +70,47 @@ const toSnapshot = (u: {
 })
 
 // The engine reports one real total. Each request is weighed in input-token
-// units by Anthropic's price ratios (cache read 0.1x, cache write 1.25x,
-// output 5x) and its model's relative input price, so every share of the
+// units by Anthropic's price ratios (output 5x, cache write 1.25x, cache read
+// a per-model fraction) and its model's input price, so every share of the
 // total (a prompt, a kind of token, a model) is that weight times one rate.
+// Only the ratios matter: the shares still add up to the real total.
 const FAMILIES = ['fable', 'mythos', 'opus', 'sonnet', 'haiku'] as const
 const family = (model: string) => FAMILIES.find(f => model.includes(f)) ?? model
-// Input $/MTok, from Anthropic's price list: Fable and Mythos 5.2 $8, Opus 5.5
-// $4, Sonnet 5.5 $2, Haiku 5.5 $0.10. The 4.x generation priced Opus at $5,
-// Sonnet at $3 and Haiku at $1, so a full model id with "-4-" gets those.
-// Only the ratios matter: the shares still add up to the real total.
+/** The version in a model id (claude-opus-5-5 is 5.5); undefined for a bare family name. */
+const versionOf = (model: string) => {
+  const m = /(?:fable|mythos|opus|sonnet|haiku)-(\d+)(?:-(\d)(?!\d))?/.exec(model)
+  return m ? Number(m[1]) + Number(m[2] ?? 0) / 10 : undefined
+}
+// A bare family name means the current model of that family.
+const atLeast = (model: string, v: number) => (versionOf(model) ?? Infinity) >= v
+
+/**
+ * Input $/MTok, from Anthropic's price list: Fable and Mythos 5.2 $8 (5 and
+ * 5.1 $10), Opus 5.5 $4 (5 and 4.x $5), Sonnet 5.x $2 (4.x $3), Haiku 5.5
+ * $0.10 (4.5 $1).
+ */
 const priceOf = (model: string) => {
   const fam = family(model)
-  const older = /-4-/.test(model)
-  if (fam === 'fable' || fam === 'mythos') return 8
-  if (fam === 'sonnet') return older ? 3 : 2
-  if (fam === 'haiku') return older ? 1 : 0.1
-  return older ? 5 : 4
+  if (fam === 'fable' || fam === 'mythos') return atLeast(model, 5.2) ? 8 : 10
+  if (fam === 'sonnet') return atLeast(model, 5) ? 2 : 3
+  if (fam === 'haiku') return atLeast(model, 5) ? 0.1 : 1
+  return atLeast(model, 5.5) ? 4 : 5
+}
+
+/** Cache reads as a fraction of input: 0.025x on Fable/Mythos 5.1+, 0.05x on Opus and Sonnet 5.5, 0.1x elsewhere. */
+const cacheReadOf = (model: string) => {
+  const fam = family(model)
+  if (fam === 'fable' || fam === 'mythos') return atLeast(model, 5.1) ? 0.025 : 0.1
+  if (fam === 'opus' || fam === 'sonnet') return atLeast(model, 5.5) ? 0.05 : 0.1
+  return 0.1
 }
 
 const weigh = (u: TurnUsage): Bucket => {
-  const p = priceOf(family(u.model))
+  const p = priceOf(u.model)
   return {
     input: u.input_tokens * p,
     output: u.output_tokens * 5 * p,
-    cacheRead: u.cache_read_input_tokens * 0.1 * p,
+    cacheRead: u.cache_read_input_tokens * cacheReadOf(u.model) * p,
     cacheWrite: u.cache_creation_input_tokens * 1.25 * p,
   }
 }
@@ -747,7 +764,7 @@ export const register: Register = on => {
       ]
       const mainFamily = models[0]?.[0] ?? 'opus'
       const perRequest =
-        s.contextTokens !== undefined && rate !== undefined ? s.contextTokens * 0.1 * priceOf(mainFamily) * rate : undefined
+        s.contextTokens !== undefined && rate !== undefined ? s.contextTokens * cacheReadOf(mainFamily) * priceOf(mainFamily) * rate : undefined
 
       return (
         <Box flexDirection="column" gap={1}>

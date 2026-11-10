@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.10
+
+- Cache reads are weighed at each model's real rate: 0.025× input on Fable and Mythos 5.1/5.2, 0.05× on Opus 5.5 and Sonnet 5.5, and 0.1× elsewhere. Cache reads used to be weighed at 0.1× for every model, which made them look like too large a share of the cost in Tokens, Prompts and the per-model split.
+- Older models get their own prices. 0.9.9 recognised only the model family, so every Opus was priced as Opus 5.5. The version is now read from the model id: Fable 5/5.1 $10, Opus 5 and 4.x $5, Sonnet 4.x $3, Haiku 4.5 $1.
+- The "≈$x each" estimate on the context warning uses the model's cache-read rate.
+- The session total is unchanged: it always comes straight from Claude Code.
+
 ## 0.9.9
 
 - Fable and Mythos show as "fable" and "mythos" in the model breakdowns, instead of their full model ids.

@@ -1,6 +1,6 @@
 {
   "name": "usage-mod",
-  "version": "0.9.9",
+  "version": "0.9.10",
   "description": "A live pane showing this session's context fill, cost, rate limits, tokens and tool calls",
   "author": { "name": "ctrivedi-ai", "url": "https://github.com/ctrivedi-ai" },
   "license": "MIT",

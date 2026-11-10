@@ -88,7 +88,7 @@ test('the session tab shows cost, limits, prompts, breakdown and tokens, on ever
     expect(await ui.find({ type: 'Text', text: /40k/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /isn't billed per token/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /tokens of context per request/ })).toBeUndefined()
-    expect(await ui.find({ type: 'Text', text: /usage-mod v0.9.9/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /usage-mod v0.9.10/ })).toBeDefined()
     await ui.unmount()
   }
 })
@@ -313,9 +313,11 @@ test('Fable is named as a model, and a subagent report is not shown as a typed p
   })
 
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
-  // Same tokens at twice Opus 5.5's price: a third of $3 to opus, two thirds to fable.
-  expect(await ui.find({ type: 'Text', text: /opus 33% \$1\.00/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /fable 67% \$2\.00/ })).toBeDefined()
+  // The same tokens per request (1k in, 2k out, 40k cache read, 4k cache write):
+  // Opus 5.5 at $4 with reads at 0.05x weighs 72k; Fable 5.2 at $8 with reads at
+  // 0.025x weighs 136k. Of $3, that's $1.04 (35%) and $1.96 (65%).
+  expect(await ui.find({ type: 'Text', text: /opus 35% \$1\.04/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /fable 65% \$1\.96/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /claude-fable/ })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /↳ subagent report/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /agent-message/ })).toBeUndefined()
