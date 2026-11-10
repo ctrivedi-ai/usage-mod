@@ -10,7 +10,7 @@ A status line under the prompt sums it up (`ctx 15% · $4.26 · 5h 12% · 7d 3%`
 
 - `/usage-budget 10` sets a daily budget in dollars; a toast appears at 80% and at 100%. `/usage-budget off` turns it off, and `/usage-budget` alone shows where you stand.
 - `/usage-export` saves the history as `usage-history-<date>.csv` in the working directory.
-- `/usage-status full` adds context tokens, today's spend (against your budget) and reset times: `ctx 15% 30k/200k · $4.26 · today $3.12/$10.00 · 5h 12% ↺3h37m`. `/usage-status compact` goes back to the short line, `off` hides it, and `/usage-status` alone flips between compact and full. Your choice is kept.
+- `/usage-status full` leads with the limits and when they reset, then today's spend (against your budget): `5h 12% ↺3h37m · 7d 3% ↺4d8h · today $3.12/$10.00 · $4.26 · ctx 15%`. The most useful part comes first, because the desktop app's footer cuts off long lines. `/usage-status compact` goes back to the short line, `off` hides it, and `/usage-status` alone flips between compact and full. Your choice is kept.
 
 The total cost is the engine's own figure. Shares of it (per prompt, per kind of token, per model) are estimates from each request's token counts and Anthropic's price ratios. On a subscription plan these are API-price estimates, not what you are billed.
 

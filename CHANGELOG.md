@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.8
+
+- The full status line now leads with the 5-hour and 7-day limits and their reset times, then today's spend, the session cost and context: `5h 25% ↺3h10m · 7d 10% ↺4d8h · today $7.29 · $4.43 · ctx 18%`. The desktop footer shows only about 40 characters, so the reset times now stay visible there. The context token count is gone; the percentage and the pane still show it.
+
 ## 0.9.7
 
 - The context, 5-hour and 7-day bars are all the same width, so their ends line up.

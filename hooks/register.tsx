@@ -5,7 +5,7 @@ import type { Bucket, HistoryRow, Ledger, Live, Snapshot, StatusStyle, Tab, View
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.9.7'
+const VERSION = '0.9.8'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -157,18 +157,20 @@ const windowLabel = (kind: string) =>
   kind === 'five_hour' ? '5h' : kind === 'seven_day' ? '7d' : kind === 'spend_limit' ? '$' : kind.slice(0, 3)
 
 /**
- * The status line. Compact: `ctx 17% · $11.47 · 5h 8% · 7d 6%`. Full adds the
- * context tokens, today's spend (against the budget, if one is set) and when
- * each limit resets: `ctx 17% 34k/200k · $11.47 · today $3.12/$10.00 · 5h 8% ↺3h37m`.
+ * The status line. Compact: `ctx 17% · $11.47 · 5h 8% · 7d 6%`. Full leads
+ * with the limits and when they reset, then today's spend (against the budget,
+ * if one is set): `5h 8% ↺3h37m · 7d 6% ↺4d8h · today $3.12/$10.00 · $11.47 · ctx 17%`.
+ * The desktop footer shows only about 40 characters, so what compact lacks
+ * comes first; the cost and context it cuts are in the pane beside it.
  */
 const summary = (s: Snapshot, style: StatusStyle = 'compact', now = 0, today?: number, limit = 0) => {
   const full = style === 'full'
-  const tokens = full && s.contextTokens !== undefined && s.contextWindow > 0 ? ` ${fmt(s.contextTokens)}/${fmt(s.contextWindow)}` : ''
-  const parts = [s.contextPercent === undefined ? 'ctx —' : `ctx ${s.contextPercent}%${tokens}`]
-  if (s.costUsd !== undefined) parts.push(`$${s.costUsd.toFixed(2)}`)
-  if (full && today !== undefined) parts.push(`today ${money(today)}${limit > 0 ? `/${money(limit)}` : ''}`)
-  for (const r of s.rateLimits) parts.push(`${windowLabel(r.kind)} ${r.percentUsed}%${full ? resetIn(r.resetsAt, now) : ''}`)
-  return parts.join(' · ')
+  const ctx = s.contextPercent === undefined ? 'ctx —' : `ctx ${s.contextPercent}%`
+  const cost = s.costUsd === undefined ? undefined : `$${s.costUsd.toFixed(2)}`
+  const spent = full && today !== undefined ? `today ${money(today)}${limit > 0 ? `/${money(limit)}` : ''}` : undefined
+  const limits = s.rateLimits.map(r => `${windowLabel(r.kind)} ${r.percentUsed}%${full ? resetIn(r.resetsAt, now) : ''}`)
+  const parts = full ? [...limits, spent, cost, ctx] : [ctx, cost, ...limits]
+  return parts.filter(p => p !== undefined).join(' · ')
 }
 
 // The header badge: three bars of a meter. In the terminal, block characters.

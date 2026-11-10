@@ -88,7 +88,7 @@ test('the session tab shows cost, limits, prompts, breakdown and tokens, on ever
     expect(await ui.find({ type: 'Text', text: /40k/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /isn't billed per token/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /tokens of context per request/ })).toBeUndefined()
-    expect(await ui.find({ type: 'Text', text: /usage-mod v0.9.7/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /usage-mod v0.9.8/ })).toBeDefined()
     await ui.unmount()
   }
 })
@@ -268,7 +268,7 @@ test('/usage-status switches the status line between compact, full and off, and 
 
   const full = await $.command.run({ command: 'usage-status', args: 'full' })
   expect(full.text).toBe('Status line set to full.')
-  expect(lines.at(-1)).toMatch(/^ctx 23% 45k\/200k · \$1\.00 · today \$1\.00 · 5h 40% ↺26m$/)
+  expect(lines.at(-1)).toBe('5h 40% ↺26m · today $1.00 · $1.00 · ctx 23%')
 
   await $.command.run({ command: 'usage-budget', args: '10' })
   expect(lines.at(-1)).toMatch(/today \$1\.00\/\$10\.00/)
@@ -279,7 +279,7 @@ test('/usage-status switches the status line between compact, full and off, and 
 
   // No argument flips to full; compact goes back to the short line.
   await $.command.run({ command: 'usage-status', args: '' })
-  expect(lines.at(-1)).toMatch(/· today /)
+  expect(lines.at(-1)).toMatch(/^5h 40% ↺26m · today /)
   await $.command.run({ command: 'usage-status', args: 'compact' })
   expect(lines.at(-1)).toBe('ctx 23% · $1.00 · 5h 40%')
 
@@ -292,5 +292,5 @@ test('a stored status style carries over to a new session', async ($, on) => {
   engine(on, text => lines.push(text), { statusStyle: 'full' })
   await oneTurn($)
 
-  expect(lines.at(-1)).toMatch(/· today \$1\.00 · 5h 40% ↺26m$/)
+  expect(lines.at(-1)).toBe('5h 40% ↺26m · today $1.00 · $1.00 · ctx 23%')
 })
