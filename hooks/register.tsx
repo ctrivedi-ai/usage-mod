@@ -5,15 +5,20 @@ import type { Bucket, HistoryRow, Ledger, Live, Snapshot, Tab, View } from '../t
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.9.4'
+const VERSION = '0.9.5'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
 const BLUE = '#6a9bcc'
 const GREEN = '#788c5d'
 const GRAY = '#b0aea5'
+// Grey text follows the theme (the app's own muted grey), so it stays readable
+// on light as well as dark; drawings can't take a theme key, so they get a
+// mid grey that holds up on both.
+const MUTED = 'inactive'
+const MID_GRAY = '#8b887f'
 const RED = '#bf4d43'
-const AMBER = '#e0a548'
+const AMBER = '#cc8a2e'
 const SERIES = [ORANGE, BLUE, GREEN, GRAY]
 
 const EMPTY: Bucket = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
@@ -225,14 +230,14 @@ const heatSvg = (values: number[], firstDay: number) => {
   const w = HEAT_LEFT + weeks * (CELL + CELL_GAP) - CELL_GAP
   const h = 7 * (CELL + CELL_GAP) - CELL_GAP
   const labels = [1, 3, 5]
-    .map(r => `<text x="0" y="${r * (CELL + CELL_GAP) + CELL - 3}" font-size="10" fill="${GRAY}" font-family="system-ui,'Segoe UI',sans-serif">${WEEKDAYS[r]}</text>`)
+    .map(r => `<text x="0" y="${r * (CELL + CELL_GAP) + CELL - 3}" font-size="10" fill="${MID_GRAY}" font-family="system-ui,'Segoe UI',sans-serif">${WEEKDAYS[r]}</text>`)
     .join('')
   const squares = cells
     .map(({ v, col, row }, i) => {
       const today = i === cells.length - 1
       return (
         `<rect x="${HEAT_LEFT + col * (CELL + CELL_GAP)}" y="${row * (CELL + CELL_GAP)}" width="${CELL}" height="${CELL}" rx="2.5" fill="${HEAT[heatLevel(v, max)]}"` +
-        (today ? ` stroke="${GRAY}" stroke-width="1.2"` : '') +
+        (today ? ` stroke="${MID_GRAY}" stroke-width="1.2"` : '') +
         '/>'
       )
     })
@@ -589,7 +594,7 @@ export const register: Register = on => {
               {label.padEnd(4)}
             </Text>
             <Text color={level(percent)}>{'█'.repeat(full)}</Text>
-            <Text color={GRAY}>{'─'.repeat(barWidth - full)}</Text>
+            <Text color={MUTED}>{'─'.repeat(barWidth - full)}</Text>
           </Text>
           <Box flexShrink={0}>
             <Text color={level(percent)} bold>
@@ -615,7 +620,7 @@ export const register: Register = on => {
 
     const section = (name: string, label: string, icon: string) => (
       <Box>
-        <Text color={GRAY}>{icon} </Text>
+        <Text color={MUTED}>{icon} </Text>
         <Button key={`sec-${name}`} plain label={`${isOpen(name) ? '▾' : '▸'} ${label}`} onPress={() => toggle(name)} />
       </Box>
     )
@@ -677,7 +682,7 @@ export const register: Register = on => {
               <Text color={ORANGE} bold>
                 {money(s.costUsd)}
               </Text>
-              <Text color={GRAY}>{isPlan ? ' ≈ API value' : ' spent this session'}</Text>
+              <Text color={MUTED}>{isPlan ? ' ≈ API value' : ' spent this session'}</Text>
             </Text>
             {limits}
           </Box>
@@ -689,18 +694,18 @@ export const register: Register = on => {
                 {top && (
                   <Text bold>
                     Most expensive: prompt #{top.n}
-                    <Text color={GRAY}> {money(rate === undefined ? undefined : top.weight * rate)}</Text>
+                    <Text color={MUTED}> {money(rate === undefined ? undefined : top.weight * rate)}</Text>
                   </Text>
                 )}
-                {recent.length === 0 && <Text color={GRAY}>No prompts yet.</Text>}
+                {recent.length === 0 && <Text color={MUTED}>No prompts yet.</Text>}
                 {recent.map((p, i) => (
                   <Box justifyContent="space-between" gap={1}>
                     <Text wrap="truncate-end">
-                      <Text color={i === 0 && lv.isRunning ? GREEN : GRAY}>● </Text>
+                      <Text color={i === 0 && lv.isRunning ? GREEN : MUTED}>● </Text>
                       {p.text ? short(p.text, 60) : `prompt #${p.n}`}
                     </Text>
                     <Box flexShrink={0}>
-                      <Text color={GRAY}>
+                      <Text color={MUTED}>
                         {p.requests}× {money(rate === undefined ? undefined : p.weight * rate)}
                       </Text>
                     </Box>
@@ -720,14 +725,14 @@ export const register: Register = on => {
                 ])}
                 <Text>
                   <Text color={ORANGE}>■ </Text>Main {Math.round((l.main / total) * 100)}% {money(rate === undefined ? undefined : l.main * rate)}
-                  <Text color={GRAY}> · </Text>
+                  <Text color={MUTED}> · </Text>
                   <Text color={BLUE}>■ </Text>Subagents {Math.round((l.sub / total) * 100)}% {money(rate === undefined ? undefined : l.sub * rate)}
                 </Text>
                 {stacked(models.map(([, w], i) => ({ share: w / total, color: SERIES[i % SERIES.length] ?? GRAY })))}
                 <Text wrap="truncate-end">
                   {models.map(([name, w], i) => (
                     <Text>
-                      {i > 0 && <Text color={GRAY}> · </Text>}
+                      {i > 0 && <Text color={MUTED}> · </Text>}
                       <Text color={SERIES[i % SERIES.length] ?? GRAY}>■ </Text>
                       {name} {Math.round((w / total) * 100)}% {money(rate === undefined ? undefined : w * rate)}
                     </Text>
@@ -735,7 +740,7 @@ export const register: Register = on => {
                 </Text>
               </Box>
             )}
-            {isOpen('breakdown') && total === 0 && <Text color={GRAY}>Nothing measured yet.</Text>}
+            {isOpen('breakdown') && total === 0 && <Text color={MUTED}>Nothing measured yet.</Text>}
           </Box>
 
           <Box flexDirection="column">
@@ -748,14 +753,14 @@ export const register: Register = on => {
                       <Text color={k.color}>■ </Text>
                       {k.label}
                     </Text>
-                    <Text color={GRAY}>
+                    <Text color={MUTED}>
                       {fmt(k.tokens)} {money(rate === undefined ? undefined : k.weight * rate)}
                     </Text>
                   </Box>
                 ))}
                 {l.contexts.length > 1 && (
                   <Box gap={1} alignItems="center">
-                    <Text color={GRAY}>last {l.contexts.length}</Text>
+                    <Text color={MUTED}>last {l.contexts.length}</Text>
                     {Svg ? (
                       <Svg source={sparkSvg(l.contexts)} alt="Context size of the recent requests" />
                     ) : (
@@ -773,7 +778,7 @@ export const register: Register = on => {
               {perRequest !== undefined ? `, ≈${money(perRequest)} each` : ''} — /compact or a new session would cut this
             </Text>
           )}
-          {isPlan && <Text color={GRAY}>Your plan isn't billed per token; these are API-price estimates.</Text>}
+          {isPlan && <Text color={MUTED}>Your plan isn't billed per token; these are API-price estimates.</Text>}
         </Box>
       )
     }
@@ -784,17 +789,17 @@ export const register: Register = on => {
         <Box flexDirection="column" gap={1}>
           <Box flexDirection="column">
             <Text>
-              <Text color={lv.isRunning ? GREEN : GRAY} bold>
+              <Text color={lv.isRunning ? GREEN : MUTED} bold>
                 {lv.isRunning ? '● Working' : '○ Idle'}
               </Text>
               {lv.startedAt > 0 && (
-                <Text color={GRAY}>
+                <Text color={MUTED}>
                   {' '}
                   · {lv.isRunning ? 'running' : 'last turn took'} {Math.round(elapsed / 1000)}s
                 </Text>
               )}
             </Text>
-            {lv.promptText ? <Text wrap="truncate-end">{lv.promptText}</Text> : <Text color={GRAY}>No turn yet.</Text>}
+            {lv.promptText ? <Text wrap="truncate-end">{lv.promptText}</Text> : <Text color={MUTED}>No turn yet.</Text>}
           </Box>
 
           {limits}
@@ -807,7 +812,7 @@ export const register: Register = on => {
               {lv.requests} requests · {lv.toolCount} tool calls ·{' '}
               <Text color={ORANGE}>≈{money(rate === undefined ? undefined : lv.weight * rate)}</Text>
             </Text>
-            <Text color={GRAY}>
+            <Text color={MUTED}>
               in {fmt(lv.tokens.input)} · cache read {fmt(lv.tokens.cacheRead)} · cache write {fmt(lv.tokens.cacheWrite)} · out{' '}
               {fmt(lv.tokens.output)}
             </Text>
@@ -817,9 +822,9 @@ export const register: Register = on => {
             <Text color={BLUE} bold>
               Recent tools
             </Text>
-            {lv.tools.length === 0 && <Text color={GRAY}>None this turn.</Text>}
+            {lv.tools.length === 0 && <Text color={MUTED}>None this turn.</Text>}
             {[...lv.tools].reverse().map((tool, i) => (
-              <Text color={i === 0 && lv.isRunning ? GREEN : GRAY}>
+              <Text color={i === 0 && lv.isRunning ? GREEN : MUTED}>
                 {i === 0 && lv.isRunning ? '▶ ' : '· '}
                 {tool}
               </Text>
@@ -885,13 +890,13 @@ export const register: Register = on => {
         const tone = t.pct === undefined || t.pct === 0 ? color : t.pct >= 10 ? RED : t.pct > 0 ? AMBER : GREEN
         return (
           <Text key={period}>
-            <Text color={GRAY}>{label} </Text>
+            <Text color={MUTED}>{label} </Text>
             <Text color={tone} bold>
               {money(t.current)}
             </Text>
-            <Text color={GRAY}> · </Text>
+            <Text color={MUTED}> · </Text>
             {t.pct === undefined ? (
-              <Text color={GRAY}>no spend last {period} to compare</Text>
+              <Text color={MUTED}>no spend last {period} to compare</Text>
             ) : t.pct > 0 ? (
               <Text color={tone} bold>
                 ▲ {t.pct}% vs last {period}
@@ -901,7 +906,7 @@ export const register: Register = on => {
                 ▼ {-t.pct}% vs last {period}
               </Text>
             ) : (
-              <Text color={GRAY}>= same as last {period}</Text>
+              <Text color={MUTED}>= same as last {period}</Text>
             )}
           </Text>
         )
@@ -910,7 +915,7 @@ export const register: Register = on => {
         <Box flexDirection="column">
           {trendLine('This week', 'week', periodTrend(rows, weekStart, lastWeekStart, now), BLUE)}
           {trendLine('This month', 'month', periodTrend(rows, monthStart, lastMonthStart, now), GREEN)}
-          <Text color={GRAY}>Compared with the same point last week and last month.</Text>
+          <Text color={MUTED}>Compared with the same point last week and last month.</Text>
         </Box>
       )
       const thisWeek = rows.filter(r => r.updatedAt >= weekStart)
@@ -931,7 +936,7 @@ export const register: Register = on => {
                         {key}
                       </Text>
                       <Box flexShrink={0}>
-                        <Text color={GRAY}>
+                        <Text color={MUTED}>
                           {Math.round((c / sum) * 100)}% <Text color={ORANGE}>{money(c)}</Text>
                         </Text>
                       </Box>
@@ -939,7 +944,7 @@ export const register: Register = on => {
                   ))}
                 </Box>
               ) : (
-                <Text color={GRAY}>No spend this week yet.</Text>
+                <Text color={MUTED}>No spend this week yet.</Text>
               ))}
           </Box>
         )
@@ -948,11 +953,11 @@ export const register: Register = on => {
         limit > 0 ? (
           meter('day', Math.round((today / limit) * 100), `${money(today)} / ${money(limit)}`)
         ) : (
-          <Text color={GRAY}>No daily budget · set one with /usage-budget 10</Text>
+          <Text color={MUTED}>No daily budget · set one with /usage-budget 10</Text>
         )
       const stat = (label: string, value: string, color: string) => (
         <Text>
-          <Text color={GRAY}>{label} </Text>
+          <Text color={MUTED}>{label} </Text>
           <Text color={color} bold>
             {value}
           </Text>
@@ -978,13 +983,13 @@ export const register: Register = on => {
             </Box>
           )}
           <Box gap={1} alignItems="center">
-            <Text color={GRAY}>{dayLabel(firstDay, startOfToday)} → Today · Less</Text>
+            <Text color={MUTED}>{dayLabel(firstDay, startOfToday)} → Today · Less</Text>
             {Svg ? (
               <Svg source={legend.source} width={legend.w} height={legend.h} alt="From no spend to the most" />
             ) : (
               <Text color={ORANGE}>{HEAT_TEXT.join('')}</Text>
             )}
-            <Text color={GRAY}>More</Text>
+            <Text color={MUTED}>More</Text>
           </Box>
           <Box gap={2} flexWrap="wrap">
             {stat('Active days', `${active}/${KEEP_DAYS}`, GREEN)}
@@ -999,22 +1004,22 @@ export const register: Register = on => {
         <Box flexDirection="column" gap={1}>
           <Box flexDirection="column">
             <Text>
-              <Text color={GRAY}>Today </Text>
+              <Text color={MUTED}>Today </Text>
               <Text color={ORANGE} bold>
                 {money(today)}
               </Text>
-              <Text color={GRAY}> · 7 days </Text>
+              <Text color={MUTED}> · 7 days </Text>
               <Text color={BLUE} bold>
                 {money(total(now - 7 * DAY))}
               </Text>
-              <Text color={GRAY}> · 30 days </Text>
+              <Text color={MUTED}> · 30 days </Text>
               <Text color={GREEN} bold>
                 {money(total(now - KEEP_DAYS * DAY))}
               </Text>
             </Text>
             {trends}
             <Box gap={2} alignItems="center">
-              <Text color={GRAY}>
+              <Text color={MUTED}>
                 {recent.length} session{recent.length === 1 ? '' : 's'} in the last {KEEP_DAYS} days
               </Text>
               <Button
@@ -1038,7 +1043,7 @@ export const register: Register = on => {
           {split('week-models', 'This week by model', '▥', spendBy(thisWeek, byModel))}
           {split('week-projects', 'This week by project', '▤', spendBy(thisWeek, byProject))}
 
-          {recent.length === 0 && <Text color={GRAY}>No sessions recorded yet.</Text>}
+          {recent.length === 0 && <Text color={MUTED}>No sessions recorded yet.</Text>}
           {days.map(g => (
             <Box key={g.label} flexDirection="column">
               <Box justifyContent="space-between" gap={1}>
@@ -1052,12 +1057,12 @@ export const register: Register = on => {
               {g.rows.map(r => (
                 <Box key={r.id} justifyContent="space-between" gap={1}>
                   <Text wrap="truncate-end">
-                    <Text color={r.id === id ? GREEN : GRAY}>{r.id === id ? '● ' : '· '}</Text>
-                    <Text color={GRAY}>{clockTime(r.startedAt)} </Text>
+                    <Text color={r.id === id ? GREEN : MUTED}>{r.id === id ? '● ' : '· '}</Text>
+                    <Text color={MUTED}>{clockTime(r.startedAt)} </Text>
                     {r.title || 'Untitled session'}
                   </Text>
                   <Box flexShrink={0}>
-                    <Text color={GRAY}>
+                    <Text color={MUTED}>
                       {r.prompts}p <Text color={ORANGE}>{money(r.cost)}</Text>
                     </Text>
                   </Box>
@@ -1065,7 +1070,7 @@ export const register: Register = on => {
               ))}
             </Box>
           ))}
-          {isPlan && <Text color={GRAY}>Costs are API-price estimates; your plan isn't billed per token.</Text>}
+          {isPlan && <Text color={MUTED}>Costs are API-price estimates; your plan isn't billed per token.</Text>}
         </Box>
       )
     }
@@ -1076,7 +1081,7 @@ export const register: Register = on => {
           {header}
           {v.tab === 'session' ? sessionTab() : v.tab === 'live' ? liveTab() : historyTab()}
         </Box>
-        <Text color={GRAY}>usage-mod v{VERSION}</Text>
+        <Text color={MUTED}>usage-mod v{VERSION}</Text>
       </Box>
     )
   })
