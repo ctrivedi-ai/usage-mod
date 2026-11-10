@@ -1,11 +1,11 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, SessionContextUsage, SessionCost, SessionRateLimit, TurnUsage } from 'claude-code'
 
-import type { Bucket, HistoryRow, Ledger, Live, Snapshot, Tab, View } from '../types'
+import type { Bucket, HistoryRow, Ledger, Live, Snapshot, StatusStyle, Tab, View } from '../types'
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.9.5'
+const VERSION = '0.9.6'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -54,6 +54,8 @@ const history = atom({ plugin: 'usage-mod', key: 'history' } as const, [] as His
 const sessionId = atom({ plugin: 'usage-mod', key: 'sessionId' } as const, '')
 // Dollars a day; 0 means no budget.
 const budget = atom({ plugin: 'usage-mod', key: 'budget' } as const, 0)
+// How much the status line says; kept in the store across sessions.
+const statusStyle = atom({ plugin: 'usage-mod', key: 'statusStyle' } as const, 'compact' as StatusStyle)
 
 const toSnapshot = (u: {
   context: SessionContextUsage
@@ -154,10 +156,18 @@ const dayLabel = (ms: number, startOfToday: number) => {
 const windowLabel = (kind: string) =>
   kind === 'five_hour' ? '5h' : kind === 'seven_day' ? '7d' : kind === 'spend_limit' ? '$' : kind.slice(0, 3)
 
-const summary = (s: Snapshot) => {
-  const parts = [s.contextPercent === undefined ? 'ctx —' : `ctx ${s.contextPercent}%`]
+/**
+ * The status line. Compact: `ctx 17% · $11.47 · 5h 8% · 7d 6%`. Full adds the
+ * context tokens, today's spend (against the budget, if one is set) and when
+ * each limit resets: `ctx 17% 34k/200k · $11.47 · today $3.12/$10.00 · 5h 8% ↺3h37m`.
+ */
+const summary = (s: Snapshot, style: StatusStyle = 'compact', now = 0, today?: number, limit = 0) => {
+  const full = style === 'full'
+  const tokens = full && s.contextTokens !== undefined && s.contextWindow > 0 ? ` ${fmt(s.contextTokens)}/${fmt(s.contextWindow)}` : ''
+  const parts = [s.contextPercent === undefined ? 'ctx —' : `ctx ${s.contextPercent}%${tokens}`]
   if (s.costUsd !== undefined) parts.push(`$${s.costUsd.toFixed(2)}`)
-  for (const r of s.rateLimits) parts.push(`${windowLabel(r.kind)} ${r.percentUsed}%`)
+  if (full && today !== undefined) parts.push(`today ${money(today)}${limit > 0 ? `/${money(limit)}` : ''}`)
+  for (const r of s.rateLimits) parts.push(`${windowLabel(r.kind)} ${r.percentUsed}%${full ? resetIn(r.resetsAt, now) : ''}`)
   return parts.join(' · ')
 }
 
@@ -382,14 +392,29 @@ const checkBudget = async ($: EngineInterface, rows: HistoryRow[], now: number) 
   )
 }
 
+/** Draws the status line in the chosen style, or clears it when off. */
+const showStatus = async ($: EngineInterface) => {
+  const style = await read($, statusStyle)
+  if (style === 'off') return $.ui.status(undefined)
+  const s = await read($, snapshot)
+  if (style === 'compact') return $.ui.status(summary(s))
+  const now = await $.clock.now()
+  $.ui.status(summary(s, style, now, spentToday(await read($, history), now), await read($, budget)))
+}
+
+const STATUS_STYLES: StatusStyle[] = ['compact', 'full', 'off']
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
     await $.command.register({ name: 'usage-pane', description: 'Open the usage pane' })
     await $.command.register({ name: 'usage-budget', description: 'Set a daily budget in dollars: /usage-budget 10, or off' })
     await $.command.register({ name: 'usage-export', description: 'Save the usage history as a CSV file' })
+    await $.command.register({ name: 'usage-status', description: 'Status line detail: /usage-status compact, full or off' })
     const storedBudget = await $.store.get('budget').catch(() => undefined)
     if (typeof storedBudget === 'number') await update($, budget, () => storedBudget)
+    const storedStyle = await $.store.get('statusStyle').catch(() => undefined)
+    if (STATUS_STYLES.includes(storedStyle as StatusStyle)) await update($, statusStyle, () => storedStyle as StatusStyle)
     const id = await $.session.id().catch(() => '')
     await update($, sessionId, () => id)
     const stored = await $.store.get('history').catch(() => undefined)
@@ -397,7 +422,7 @@ export const register: Register = on => {
     const usage = await $.session.usage().catch(() => undefined)
     await update($, snapshot, () => (usage ? toSnapshot(usage) : { contextWindow: 0, rateLimits: [] }))
     await update($, ledger, l => (l.requests === 0 ? { ...l, baseCost: usage?.cost?.usd ?? 0 } : l))
-    $.ui.status(summary(await read($, snapshot)))
+    await showStatus($)
     void $.ui.open({ id: PANE, title: TITLE })
 
     return started
@@ -430,7 +455,25 @@ export const register: Register = on => {
     // A new budget gets its own alerts.
     await $.store.set('budgetAlert', null)
     if (value > 0) await checkBudget($, await read($, history), await $.clock.now())
+    await showStatus($)
     return { text: value > 0 ? `Daily budget set to ${money(value)}. You'll get a toast at 80% and 100%.` : 'Daily budget turned off.' }
+  })
+
+  on('command.run', { command: 'usage-status' }, async ($, e) => {
+    const arg = e.args.trim().toLowerCase()
+    const current = await read($, statusStyle)
+    // No argument flips between compact and full.
+    const next = arg === '' ? (current === 'full' ? 'compact' : 'full') : (arg as StatusStyle)
+    if (!STATUS_STYLES.includes(next)) return { text: `Unknown style "${arg}". Use /usage-status compact, full or off.` }
+    await update($, statusStyle, () => next)
+    await $.store.set('statusStyle', next)
+    await showStatus($)
+    return {
+      text:
+        next === 'off'
+          ? 'Status line turned off. Bring it back with /usage-status compact or full.'
+          : `Status line set to ${next}.`,
+    }
   })
 
   on('command.run', { command: 'usage-export' }, async $ => {
@@ -441,7 +484,6 @@ export const register: Register = on => {
   on('session.measure', async ($, e, next) => {
     const s = toSnapshot(e)
     await update($, snapshot, () => s)
-    $.ui.status(summary(s))
 
     // Keep this session's row in the history, newest first, across sessions.
     try {
@@ -475,6 +517,8 @@ export const register: Register = on => {
     } catch {
       // History is a convenience; a failed write never holds up the session.
     }
+    // After the history, so "today" in the full style includes this request.
+    await showStatus($).catch(() => undefined)
 
     return next(e)
   })

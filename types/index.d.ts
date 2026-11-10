@@ -40,6 +40,8 @@ export type Live = {
 }
 
 export type Tab = 'session' | 'live' | 'history'
+/** How much the status line under the prompt says. */
+export type StatusStyle = 'compact' | 'full' | 'off'
 
 export type View = { tab: Tab; closed: string[] }
 
@@ -66,6 +68,7 @@ declare module 'claude-code' {
       history: HistoryRow[]
       sessionId: string
       budget: number
+      statusStyle: StatusStyle
     }
   }
 }
