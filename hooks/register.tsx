@@ -5,7 +5,7 @@ import type { Bucket, HistoryRow, Ledger, Live, Snapshot, Tab, View } from '../t
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.9.2'
+const VERSION = '0.9.3'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -575,7 +575,12 @@ export const register: Register = on => {
       }))
     const isOpen = (name: string) => !v.closed.includes(name)
 
+    // A desktop's proportional font fits fewer glyphs than bodyColumns reports,
+    // so leave it slack; and size each bar around its own right-hand text, or
+    // a long one ("15% ↺3h37m") wraps under the bar.
+    const meterRoom = e.surface === 'terminal' ? columns : Math.floor(columns * 0.8)
     const meter = (label: string, percent: number, right: string) => {
+      const barWidth = Math.max(6, Math.min(60, meterRoom - 4 - right.length - 2))
       const full = Math.max(percent > 0 ? 1 : 0, Math.round((Math.min(100, percent) / 100) * barWidth))
       return (
         <Box justifyContent="space-between">
