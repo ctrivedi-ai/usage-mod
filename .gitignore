@@ -1,0 +1,17 @@
+# Types the engine generates when it loads the mod
+.claude-plugin/types/
+
+# CSV files written by /usage-export
+usage-history-*.csv
+
+# Editor and OS clutter
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Local previews of the pane
+preview/
+
+# Local development notes (machine paths)
+HANDOFF.md

@@ -1,0 +1,6 @@
+{
+  "name": "usage-mod",
+  "description": "A live Usage pane for Claude Code: cost, context, rate limits and 30-day history",
+  "owner": { "name": "ctrivedi-ai" },
+  "plugins": [{ "name": "usage-mod", "source": "./" }]
+}
