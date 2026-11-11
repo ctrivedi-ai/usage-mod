@@ -1,11 +1,11 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, SessionContextUsage, SessionCost, SessionRateLimit, TurnUsage } from 'claude-code'
 
-import type { Bucket, HistoryRow, Ledger, Live, Snapshot, StatusStyle, Tab, View } from '../types'
+import type { Bucket, HistoryRow, Ledger, Live, PaceSample, RateWindow, Snapshot, StatusStyle, Tab, View } from '../types'
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.9.12'
+const VERSION = '0.10.0'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -56,6 +56,8 @@ const sessionId = atom({ plugin: 'usage-mod', key: 'sessionId' } as const, '')
 const budget = atom({ plugin: 'usage-mod', key: 'budget' } as const, 0)
 // How much the status line says; kept in the store across sessions.
 const statusStyle = atom({ plugin: 'usage-mod', key: 'statusStyle' } as const, 'compact' as StatusStyle)
+// Each rate limit's recent readings, by kind, for the forecast; this session only.
+const pace = atom({ plugin: 'usage-mod', key: 'pace' } as const, {} as Record<string, PaceSample[]>)
 
 const toSnapshot = (u: {
   context: SessionContextUsage
@@ -155,10 +157,16 @@ const span = (ms: number) => {
   return h > 0 ? `${h}h${mins % 60}m` : `${mins}m`
 }
 
-const resetIn = (iso: string | undefined, now: number) => {
-  if (!iso) return ''
+/** A reset time in ms: an ISO string, or epoch seconds or milliseconds as digits. */
+const parseTime = (iso: string | undefined) => {
+  if (!iso) return undefined
   const at = /^[0-9]+$/.test(iso) ? Number(iso) * (iso.length <= 10 ? 1000 : 1) : Date.parse(iso)
-  return Number.isFinite(at) && Number.isFinite(now) ? ` ↺${span(at - now)}` : ''
+  return Number.isFinite(at) ? at : undefined
+}
+
+const resetIn = (iso: string | undefined, now: number) => {
+  const at = parseTime(iso)
+  return at !== undefined && Number.isFinite(now) ? ` ↺${span(at - now)}` : ''
 }
 
 // History shows a month of sessions and stores two, so this month can be set against last month.
@@ -184,19 +192,68 @@ const dayLabel = (ms: number, startOfToday: number) => {
 const windowLabel = (kind: string) =>
   kind === 'five_hour' ? '5h' : kind === 'seven_day' ? '7d' : kind === 'spend_limit' ? '$' : kind.slice(0, 3)
 
+// The forecast: when a rate limit will be reached at the present pace, shown
+// only if that comes before the limit resets.
+const WINDOW_MS: Record<string, number> = { five_hour: 5 * 60 * 60 * 1000, seven_day: 7 * DAY }
+// The pace is read off the last half hour once there are ten minutes of
+// readings; before that, off the whole window so far.
+const PACE_RECENT = 30 * 60_000
+const PACE_MIN_SPAN = 10 * 60_000
+
+type Forecast = { kind: string; eta: number; resetAt: number; isSoon: boolean }
+
+/** Adds a reading, drops those over half an hour old, and starts afresh when the limit has reset. */
+const addSample = (list: PaceSample[], pct: number, now: number): PaceSample[] => {
+  const last = list[list.length - 1]
+  if (last && pct < last.pct) return [{ t: now, pct }]
+  const kept = list.filter(p => p.t >= now - PACE_RECENT)
+  if (last && last.pct === pct && now - last.t < 60_000) return kept
+  return [...kept, { t: now, pct }]
+}
+
+const forecast = (r: RateWindow, now: number, samples: PaceSample[] = []): Forecast | undefined => {
+  const length = WINDOW_MS[r.kind]
+  const resetAt = parseTime(r.resetsAt)
+  if (!length || resetAt === undefined || !(now > 0) || resetAt <= now || r.percentUsed >= 100) return undefined
+  const first = samples.find(p => p.t >= now - PACE_RECENT && p.t <= now)
+  const elapsed = now - (resetAt - length)
+  // Percent per millisecond.
+  const rate =
+    first && now - first.t >= PACE_MIN_SPAN
+      ? (r.percentUsed - first.pct) / (now - first.t)
+      : elapsed >= length * 0.05
+        ? r.percentUsed / elapsed
+        : 0
+  if (!(rate > 0)) return undefined
+  const eta = (100 - r.percentUsed) / rate
+  // "Soon" is within a tenth of the window: 30 minutes of 5 hours.
+  return now + eta < resetAt ? { kind: r.kind, eta, resetAt, isSoon: eta <= length / 10 } : undefined
+}
+
 /**
- * The status line. Compact: `ctx 17% · $11.47 · 5h 8% · 7d 6%`. Full leads
+ * The status line. Compact: `ctx 17% · $11.47 · 5h 8% · 7d 6%`. A limit that
+ * will be reached before it resets gains the time left: `5h 64% ⚑42m`. Full leads
  * with the limits and when they reset, then today's spend (against the budget,
  * if one is set): `5h 8% ↺3h37m · 7d 6% ↺4d8h · today $3.12/$10.00 · $11.47 · ctx 17%`.
  * The desktop footer shows only about 40 characters, so what compact lacks
  * comes first; the cost and context it cuts are in the pane beside it.
  */
-const summary = (s: Snapshot, style: StatusStyle = 'compact', now = 0, today?: number, limit = 0) => {
+const summary = (
+  s: Snapshot,
+  style: StatusStyle = 'compact',
+  now = 0,
+  today?: number,
+  limit = 0,
+  samples: Record<string, PaceSample[]> = {},
+) => {
   const full = style === 'full'
   const ctx = s.contextPercent === undefined ? 'ctx —' : `ctx ${s.contextPercent}%`
   const cost = s.costUsd === undefined ? undefined : `$${s.costUsd.toFixed(2)}`
   const spent = full && today !== undefined ? `today ${money(today)}${limit > 0 ? `/${money(limit)}` : ''}` : undefined
-  const limits = s.rateLimits.map(r => `${windowLabel(r.kind)} ${r.percentUsed}%${full ? resetIn(r.resetsAt, now) : ''}`)
+  const limits = s.rateLimits.map(r => {
+    const f = forecast(r, now, samples[r.kind])
+    return `${windowLabel(r.kind)} ${r.percentUsed}%${f ? ` ⚑${span(f.eta)}` : ''}${full ? resetIn(r.resetsAt, now) : ''}`
+  })
   const parts = full ? [...limits, spent, cost, ctx] : [ctx, cost, ...limits]
   return parts.filter(p => p !== undefined).join(' · ')
 }
@@ -448,9 +505,30 @@ const showStatus = async ($: EngineInterface) => {
   const style = await read($, statusStyle)
   if (style === 'off') return $.ui.status(undefined)
   const s = await read($, snapshot)
-  if (style === 'compact') return $.ui.status(summary(s))
   const now = await $.clock.now()
-  $.ui.status(summary(s, style, now, spentToday(await read($, history), now), await read($, budget)))
+  const samples = await read($, pace)
+  if (style === 'compact') return $.ui.status(summary(s, style, now, undefined, 0, samples))
+  $.ui.status(summary(s, style, now, spentToday(await read($, history), now), await read($, budget), samples))
+}
+
+/** Records each limit's reading, and toasts once per window when a limit is about to be reached. */
+const checkLimits = async ($: EngineInterface, s: Snapshot, now: number) => {
+  await update($, pace, p => ({
+    ...p,
+    ...Object.fromEntries(s.rateLimits.map(r => [r.kind, addSample(p[r.kind] ?? [], r.percentUsed, now)])),
+  }))
+  const samples = await read($, pace)
+  const soon = s.rateLimits.map(r => forecast(r, now, samples[r.kind])).filter((f): f is Forecast => f?.isSoon === true)
+  if (soon.length === 0) return
+  const sent = ((await $.store.get('limitAlert').catch(() => undefined)) ?? {}) as Record<string, string>
+  for (const f of soon) {
+    // A window is known by when it resets, to the nearest ten minutes.
+    const key = String(Math.round(f.resetAt / 600_000))
+    if (sent[f.kind] === key) continue
+    sent[f.kind] = key
+    await $.store.set('limitAlert', sent)
+    $.ui.toast(`⚑ At this pace you'll reach the ${windowLabel(f.kind)} limit in about ${span(f.eta)}`, { timeoutMs: 8000 })
+  }
 }
 
 const STATUS_STYLES: StatusStyle[] = ['compact', 'full', 'off']
@@ -568,6 +646,8 @@ export const register: Register = on => {
     } catch {
       // History is a convenience; a failed write never holds up the session.
     }
+    // The forecast is a convenience too.
+    await checkLimits($, s, await $.clock.now()).catch(() => undefined)
     // After the history, so "today" in the full style includes this request.
     await showStatus($).catch(() => undefined)
 
@@ -752,11 +832,18 @@ export const register: Register = on => {
     // ends line up.
     const ctxRight = `${s.contextPercent}% ${fmt(s.contextTokens ?? 0)}/${fmt(s.contextWindow)}`
     const limitRights = s.rateLimits.map(r => `${r.percentUsed}%${resetIn(r.resetsAt, now)}`)
+    const samples = await read($, pace)
+    const forecasts = s.rateLimits.map(r => forecast(r, now, samples[r.kind])).filter((f): f is Forecast => f !== undefined)
     const rightRoom = Math.max(0, ...[s.contextPercent !== undefined ? ctxRight : '', ...limitRights].map(t => t.length))
     const limits = (
       <Box flexDirection="column">
         {s.contextPercent !== undefined && meter('ctx', s.contextPercent, ctxRight, rightRoom)}
         {s.rateLimits.map((r, i) => meter(windowLabel(r.kind), r.percentUsed, limitRights[i] ?? '', rightRoom))}
+        {forecasts.map(f => (
+          <Text color={f.isSoon ? RED : AMBER}>
+            ⚑ {windowLabel(f.kind)} limit in ~{span(f.eta)} at this pace (resets in {span(f.resetAt - now)})
+          </Text>
+        ))}
       </Box>
     )
 

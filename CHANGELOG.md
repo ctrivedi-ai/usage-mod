@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0
+
+- **Limit forecast.** When you are on course to reach the 5-hour or 7-day limit before it resets, the pane says so under the bars on the Session and Live tabs: `⚑ 5h limit in ~42m at this pace (resets in 1h50m)`. The line is amber, and red once the limit is close.
+- The status line shows the same thing beside the limit, in both styles: `5h 64% ⚑42m`.
+- A toast appears once per window when the limit is close: within 30 minutes for the 5-hour limit, and within about 17 hours for the 7-day limit.
+- The pace comes from the last half hour of this session once it has ten minutes of readings. Before that it is the average over the window so far. Nothing is shown when you would reach the reset first. It is an estimate, and it only sees this session's readings.
+
 ## 0.9.12
 
 - README rewritten: a one-line pitch and the install command at the top, an animated illustration of the pane (`docs/hero.svg`), a commands table, common questions and a privacy note. The mod itself is unchanged.

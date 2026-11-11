@@ -41,6 +41,14 @@ The session's cost, then bars for context, the 5-hour limit and the 7-day limit,
 
 It warns you when every request is re-sending a large context.
 
+**Limit forecast.** When you are on course to reach the 5-hour or 7-day limit before it resets, a line under the bars says how long you have:
+
+```
+⚑ 5h limit in ~42m at this pace (resets in 1h50m)
+```
+
+The same appears in the status line (`5h 64% ⚑42m`), and a toast warns you once when the limit is close. The pace is taken from the last half hour of the session, or from the window so far when the session is new. It is an estimate.
+
 ### Live
 
 The turn in progress: whether Claude is working, its prompt, requests, tool calls, tokens and cost so far, and the most recent tools.
@@ -101,7 +109,7 @@ In the desktop app, where `/plugin` does not run: click + next to the prompt box
 The dollars are what the session would cost at API prices. On a subscription they are an estimate of value, not what you are billed. The 5-hour and 7-day bars are the figures that matter for your plan.
 
 **I keep hitting my 5-hour or weekly limit. Can I see it coming?**
-Yes. Both limits are bars in the pane with the time until they reset, and both are in the status line, so you can check before a long run.
+Yes. Both limits are bars in the pane with the time until they reset, and both are in the status line. When your pace would take you to a limit before it resets, the pane and the status line say how long you have left, and a toast warns you when it is close.
 
 **Which prompt cost the most?**
 Open Prompts on the Session tab. Every prompt is listed with its request count and cost, and the most expensive is called out.
