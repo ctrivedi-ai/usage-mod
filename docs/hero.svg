@@ -1,0 +1,208 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 690" width="900" height="690" role="img" aria-labelledby="t d">
+  <title id="t">The Usage pane beside a Claude Code chat</title>
+  <desc id="d">An illustration with sample data. While Claude works through a prompt, the pane's session cost rises from $4.02 to $4.26, the context bar grows, and the cost of the running prompt, the breakdown by model and the status line under the prompt box update with it.</desc>
+  <style>
+    svg {
+      --bg: #faf9f5; --panel: #ffffff; --border: #dedcd1; --text: #1f1e1d; --muted: #77746c; --line: #e6e4da; --bubble: #efede4;
+      --orange: #d97757; --blue: #5b8bbd; --green: #6b8050; --gray: #a09d94; --amber: #b87a22;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      svg {
+        --bg: #1f1e1d; --panel: #262624; --border: #3d3c38; --text: #e8e6dc; --muted: #8f8c83; --line: #3a3936; --bubble: #33322f;
+        --orange: #d97757; --blue: #6a9bcc; --green: #8aa06c; --gray: #b0aea5; --amber: #d9a03f;
+      }
+    }
+    text { fill: var(--text); }
+    .m { fill: var(--muted); }
+    .o { fill: var(--orange); }
+    .b { fill: var(--blue); }
+    .g { fill: var(--green); }
+    .y { fill: var(--gray); }
+    .a { fill: var(--amber); }
+    .bold { font-weight: 600; }
+    .end { text-anchor: end; }
+    .small { font-size: 12.5px; }
+    .track { stroke: var(--muted); stroke-width: 1.5; opacity: 0.55; }
+
+    .s1 { animation: k1 12s infinite; }
+    .s2 { animation: k2 12s infinite; opacity: 0; }
+    .s3 { animation: k3 12s infinite; opacity: 0; }
+    .s4 { animation: k4 12s infinite; opacity: 0; }
+    .a2 { animation: a2 12s infinite; opacity: 0; }
+    .a3 { animation: a3 12s infinite; opacity: 0; }
+    .a4 { animation: k4 12s infinite; opacity: 0; }
+    @keyframes k1 { 0%, 24.99% { opacity: 1 } 25%, 100% { opacity: 0 } }
+    @keyframes k2 { 0%, 24.99% { opacity: 0 } 25%, 49.99% { opacity: 1 } 50%, 100% { opacity: 0 } }
+    @keyframes k3 { 0%, 49.99% { opacity: 0 } 50%, 74.99% { opacity: 1 } 75%, 100% { opacity: 0 } }
+    @keyframes k4 { 0%, 74.99% { opacity: 0 } 75%, 100% { opacity: 1 } }
+    @keyframes a2 { 0%, 24.99% { opacity: 0 } 25%, 100% { opacity: 1 } }
+    @keyframes a3 { 0%, 49.99% { opacity: 0 } 50%, 100% { opacity: 1 } }
+
+    .pulse { animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.3 } }
+    .spark { stroke-dasharray: 1; animation: draw 12s infinite; }
+    @keyframes draw { 0% { stroke-dashoffset: 1 } 22%, 100% { stroke-dashoffset: 0 } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .s1, .s2, .s3 { animation: none; opacity: 0; }
+      .s4, .a2, .a3, .a4 { animation: none; opacity: 1; }
+      .pulse, .spark { animation: none; }
+    }
+  </style>
+
+  <!-- Window -->
+  <rect x="0.5" y="0.5" width="899" height="689" rx="14" fill="var(--bg)" stroke="var(--border)"/>
+  <circle cx="24" cy="20" r="5" fill="var(--line)"/>
+  <circle cx="42" cy="20" r="5" fill="var(--line)"/>
+  <circle cx="60" cy="20" r="5" fill="var(--line)"/>
+  <text x="450" y="25" class="m small" text-anchor="middle">Claude Code session</text>
+  <line x1="0" y1="40" x2="900" y2="40" stroke="var(--border)"/>
+
+  <!-- Usage pane background -->
+  <path d="M480 40.5H899.5V676a13.5 13.5 0 0 1-13.5 13.5H480Z" fill="var(--panel)"/>
+  <line x1="480" y1="40" x2="480" y2="690" stroke="var(--border)"/>
+
+  <!-- Chat -->
+  <rect x="216" y="64" width="240" height="40" rx="12" fill="var(--bubble)"/>
+  <text x="232" y="89">Add a retry to the upload client</text>
+
+  <rect x="24" y="132" width="360" height="8" rx="4" fill="var(--line)"/>
+  <rect x="24" y="152" width="290" height="8" rx="4" fill="var(--line)"/>
+
+  <g>
+    <rect x="24.5" y="182.500" width="300" height="30" rx="8" fill="none" stroke="var(--border)"/>
+    <text x="38" y="202" class="small"><tspan class="bold">Read</tspan><tspan class="m" dx="8">upload/client.ts</tspan></text>
+  </g>
+  <g class="a2">
+    <rect x="24.5" y="220.500" width="300" height="30" rx="8" fill="none" stroke="var(--border)"/>
+    <text x="38" y="240" class="small"><tspan class="bold">Edit</tspan><tspan class="m" dx="8">upload/client.ts</tspan></text>
+  </g>
+  <g class="a3">
+    <rect x="24.5" y="258.500" width="300" height="30" rx="8" fill="none" stroke="var(--border)"/>
+    <text x="38" y="278" class="small"><tspan class="bold">Bash</tspan><tspan class="m" dx="8">npm test</tspan></text>
+  </g>
+  <g class="a4">
+    <rect x="24" y="312" width="380" height="8" rx="4" fill="var(--line)"/>
+    <rect x="24" y="332" width="340" height="8" rx="4" fill="var(--line)"/>
+    <rect x="24" y="352" width="210" height="8" rx="4" fill="var(--line)"/>
+  </g>
+  <g class="pulse">
+    <circle cx="30" cy="394" r="4" fill="var(--orange)"/>
+    <text x="42" y="398.500" class="m small">Working…</text>
+  </g>
+
+  <rect x="24.5" y="596.500" width="431" height="44" rx="12" fill="var(--panel)" stroke="var(--border)"/>
+  <text x="40" y="623" class="m">Reply…</text>
+  <text x="28" y="666" class="m small s1">ctx 41% · $4.02 · 5h 64% · 7d 23%</text>
+  <text x="28" y="666" class="m small s2">ctx 42% · $4.11 · 5h 64% · 7d 23%</text>
+  <text x="28" y="666" class="m small s3">ctx 43% · $4.19 · 5h 64% · 7d 23%</text>
+  <text x="28" y="666" class="m small s4">ctx 44% · $4.26 · 5h 64% · 7d 23%</text>
+
+  <!-- Pane header: the meter badge and the tabs -->
+  <g transform="translate(500 54)" fill="var(--orange)">
+    <rect x="1.25" y="1.250" width="37.5" height="37.5" rx="5" fill="none" stroke="var(--orange)" stroke-opacity="0.45" stroke-width="1.25"/>
+    <rect x="6.25" y="21.500" width="7.5" height="13.5" rx="1.25">
+      <animate attributeName="height" values="13.5;9;13.5" dur="0.9s" begin="0s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="21.5;26;21.5" dur="0.9s" begin="0s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="16.25" y="14" width="7.5" height="21" rx="1.25">
+      <animate attributeName="height" values="21;9;21" dur="0.9s" begin="0.15s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="14;26;14" dur="0.9s" begin="0.15s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="26.25" y="5" width="7.5" height="30" rx="1.25">
+      <animate attributeName="height" values="30;9;30" dur="0.9s" begin="0.3s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="5;26;5" dur="0.9s" begin="0.3s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+  <text x="558" y="79" class="bold">Session</text>
+  <text x="630" y="79" class="m">Live</text>
+  <text x="676" y="79" class="m">History</text>
+
+  <!-- Cost -->
+  <text x="500" y="124" class="s1"><tspan class="o bold">$4.02</tspan><tspan class="m"> ≈ API value</tspan></text>
+  <text x="500" y="124" class="s2"><tspan class="o bold">$4.11</tspan><tspan class="m"> ≈ API value</tspan></text>
+  <text x="500" y="124" class="s3"><tspan class="o bold">$4.19</tspan><tspan class="m"> ≈ API value</tspan></text>
+  <text x="500" y="124" class="s4"><tspan class="o bold">$4.26</tspan><tspan class="m"> ≈ API value</tspan></text>
+
+  <!-- Meters -->
+  <text x="500" y="146" class="b bold">ctx</text>
+  <line x1="540" y1="141" x2="775" y2="141" class="track"/>
+  <rect x="540" y="135" width="96" height="12" fill="var(--green)">
+    <animate attributeName="width" values="96;99;101;103" calcMode="discrete" dur="12s" repeatCount="indefinite"/>
+  </rect>
+  <text x="880" y="146" class="g bold end s1">41% 82k/200k</text>
+  <text x="880" y="146" class="g bold end s2">42% 84k/200k</text>
+  <text x="880" y="146" class="g bold end s3">43% 86k/200k</text>
+  <text x="880" y="146" class="g bold end s4">44% 88k/200k</text>
+
+  <text x="500" y="168" class="b bold">5h</text>
+  <line x1="540" y1="163" x2="775" y2="163" class="track"/>
+  <rect x="540" y="157" width="150" height="12" fill="var(--amber)"/>
+  <text x="880" y="168" class="a bold end">64% ↺<tspan dx="3">1h12m</tspan></text>
+
+  <text x="500" y="190" class="b bold">7d</text>
+  <line x1="540" y1="185" x2="775" y2="185" class="track"/>
+  <rect x="540" y="179" width="54" height="12" fill="var(--green)"/>
+  <text x="880" y="190" class="g bold end">23% ↺<tspan dx="3">4d8h</tspan></text>
+
+  <!-- Prompts -->
+  <text x="500" y="224"><tspan class="m">◷ </tspan>▾ Prompts (4)</text>
+  <text x="500" y="246"><tspan class="bold">Most expensive: prompt #2</tspan><tspan class="m"> $1.84</tspan></text>
+
+  <circle cx="505" cy="263" r="4" fill="var(--green)" class="pulse"/>
+  <text x="516" y="268">Add a retry to the upload client</text>
+  <text x="880" y="268" class="m end s1">1× $0.07</text>
+  <text x="880" y="268" class="m end s2">2× $0.16</text>
+  <text x="880" y="268" class="m end s3">3× $0.24</text>
+  <text x="880" y="268" class="m end s4">4× $0.31</text>
+
+  <circle cx="505" cy="285" r="4" fill="var(--muted)"/>
+  <text x="516" y="290">Why is the nightly build slow?</text>
+  <text x="880" y="290" class="m end">6× $0.52</text>
+
+  <circle cx="505" cy="307" r="4" fill="var(--muted)"/>
+  <text x="516" y="312">Refactor the billing module</text>
+  <text x="880" y="312" class="m end">14× $1.84</text>
+
+  <circle cx="505" cy="329" r="4" fill="var(--muted)"/>
+  <text x="516" y="334">Write tests for the parser</text>
+  <text x="880" y="334" class="m end">9× $1.59</text>
+
+  <!-- Breakdown -->
+  <text x="500" y="368"><tspan class="m">▥ </tspan>▾ Breakdown</text>
+  <rect x="500" y="378" width="296" height="12" fill="var(--orange)"/>
+  <rect x="796" y="378" width="84" height="12" fill="var(--blue)"/>
+  <text x="500" y="412" class="s1"><tspan class="o">■ </tspan>Main 77% $3.08<tspan class="m"> · </tspan><tspan class="b">■ </tspan>Subagents 23% $0.94</text>
+  <text x="500" y="412" class="s2"><tspan class="o">■ </tspan>Main 77% $3.17<tspan class="m"> · </tspan><tspan class="b">■ </tspan>Subagents 23% $0.94</text>
+  <text x="500" y="412" class="s3"><tspan class="o">■ </tspan>Main 78% $3.25<tspan class="m"> · </tspan><tspan class="b">■ </tspan>Subagents 22% $0.94</text>
+  <text x="500" y="412" class="s4"><tspan class="o">■ </tspan>Main 78% $3.32<tspan class="m"> · </tspan><tspan class="b">■ </tspan>Subagents 22% $0.94</text>
+  <rect x="500" y="422" width="308" height="12" fill="var(--orange)"/>
+  <rect x="808" y="422" width="72" height="12" fill="var(--blue)"/>
+  <text x="500" y="456" class="s1"><tspan class="o">■ </tspan>opus 80% $3.21<tspan class="m"> · </tspan><tspan class="b">■ </tspan>haiku 20% $0.81</text>
+  <text x="500" y="456" class="s2"><tspan class="o">■ </tspan>opus 80% $3.30<tspan class="m"> · </tspan><tspan class="b">■ </tspan>haiku 20% $0.81</text>
+  <text x="500" y="456" class="s3"><tspan class="o">■ </tspan>opus 81% $3.38<tspan class="m"> · </tspan><tspan class="b">■ </tspan>haiku 19% $0.81</text>
+  <text x="500" y="456" class="s4"><tspan class="o">■ </tspan>opus 81% $3.45<tspan class="m"> · </tspan><tspan class="b">■ </tspan>haiku 19% $0.81</text>
+
+  <!-- Tokens -->
+  <text x="500" y="490"><tspan class="m">∿ </tspan>▾ Tokens</text>
+  <text x="500" y="512"><tspan class="b">■ </tspan>new input</text>
+  <text x="880" y="512" class="m end">48k $0.19</text>
+  <text x="500" y="534"><tspan class="g">■ </tspan>cache read</text>
+  <text x="880" y="534" class="m end">6.8M $1.36</text>
+  <text x="500" y="556"><tspan class="y">■ </tspan>cache write</text>
+  <text x="880" y="556" class="m end">310k $1.55</text>
+  <text x="500" y="578"><tspan class="o">■ </tspan>output</text>
+  <text x="880" y="578" class="m end s1">46k $0.92</text>
+  <text x="880" y="578" class="m end s2">51k $1.01</text>
+  <text x="880" y="578" class="m end s3">55k $1.09</text>
+  <text x="880" y="578" class="m end s4">58k $1.16</text>
+
+  <text x="500" y="606" class="m">last 20</text>
+  <polyline class="spark" pathLength="1" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+    points="560,612 577,610 594,609 611,607 627,608 644,604 661,603 678,600 695,601 712,598 728,596 745,597 762,594 779,592 796,593 813,590 829,589 846,588 863,587 880,586"/>
+
+  <text x="500" y="640" class="m small">Your plan isn't billed per token; these are</text>
+  <text x="500" y="657" class="m small">API-price estimates.</text>
+</svg>

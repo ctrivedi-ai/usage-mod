@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.12
+
+- README rewritten: a one-line pitch and the install command at the top, an animated illustration of the pane (`docs/hero.svg`), a commands table, common questions and a privacy note. The mod itself is unchanged.
+
 ## 0.9.11
 
 - Model breakdowns group saved entries by family when drawn, so a model recorded under its full id before 0.9.9 (such as `claude-fable-5-2`) now shows as "fable". This applies to Session → Breakdown and History → This week by model. Saved data is unchanged.

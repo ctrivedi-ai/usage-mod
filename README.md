@@ -1,20 +1,83 @@
-# usage-mod
+<h1 align="center">
+  <img src=".claude-plugin/icon.png" width="72" alt=""><br>
+  usage-mod
+</h1>
 
-[![Secret scan](https://github.com/ctrivedi-ai/usage-mod/actions/workflows/secret-scan.yml/badge.svg?branch=main)](https://github.com/ctrivedi-ai/usage-mod/actions/workflows/secret-scan.yml)
+<p align="center"><b>See what this Claude Code session is costing you, while it runs.</b></p>
 
-A Claude Code mod that keeps a **Usage** pane beside the chat, with a small meter badge in the header that moves while Claude works. Switch tabs with the buttons or the hotkeys 1, 2 and 3 while the pane has focus.
+<p align="center">
+  <a href="https://github.com/ctrivedi-ai/usage-mod/actions/workflows/secret-scan.yml"><img src="https://github.com/ctrivedi-ai/usage-mod/actions/workflows/secret-scan.yml/badge.svg?branch=main" alt="Secret scan"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-788c5d" alt="MIT license"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-latest-d97757" alt="Changelog"></a>
+</p>
 
-- **Session**: the session's cost, context and rate-limit bars with reset times, then three sections you can collapse: Prompts (each prompt's request count and cost, plus the most expensive one), Breakdown (main thread vs subagents, and by model) and Tokens (new input, cache read, cache write and output, with a sparkline of the last 20 requests' context size). It warns when every request is re-sending a large context.
-- **Live**: the turn in progress: whether Claude is working, its prompt, requests, tool calls, tokens and cost so far, and the most recent tools.
-- **History**: the last 30 days: totals for today, 7 days and 30 days, this week and this month with the change from last week and last month (▲ up, ▼ down, as a %, coloured by the trend), this week's spend by model and by project, a heatmap of daily spend, your daily budget, and each session grouped by day. **Export CSV** saves it all to a file.
+```
+/plugin install usage-mod --marketplace ctrivedi-ai/usage-mod
+```
 
-A status line under the prompt sums it up (`ctx 15% · $4.26 · 5h 12% · 7d 3%`), and `/usage-pane` reopens the pane.
+<p align="center">
+  <img src="docs/hero.svg" width="820" alt="The Usage pane beside a Claude Code chat. While Claude works, the session cost rises, the context bar grows, and the cost of the running prompt, the breakdown by model and the status line update with it.">
+  <br>
+  <sub>An illustration of the Session tab, with sample data.</sub>
+</p>
 
-- `/usage-budget 10` sets a daily budget in dollars; a toast appears at 80% and at 100%. `/usage-budget off` turns it off, and `/usage-budget` alone shows where you stand.
-- `/usage-export` saves the history as `usage-history-<date>.csv` in the working directory.
-- `/usage-status full` leads with the limits and when they reset, then today's spend (against your budget): `5h 12% ↺3h37m · 7d 3% ↺4d8h · today $3.12/$10.00 · $4.26 · ctx 15%`. The most useful part comes first, because the desktop app's footer cuts off long lines. `/usage-status compact` goes back to the short line, `off` hides it, and `/usage-status` alone flips between compact and full. Your choice is kept.
+If usage-mod shows you something you didn't know about your sessions, star the repo so other Claude Code users can find it.
 
-The total cost is the engine's own figure. Shares of it (per prompt, per kind of token, per model) are estimates from each request's token counts and Anthropic's price ratios. On a subscription plan these are API-price estimates, not what you are billed.
+## The problem
+
+Claude Code tells you a session's total cost if you ask. It doesn't tell you which prompt was the expensive one, how much went to subagents, or how close you are to the 5-hour limit before you start a long run.
+
+usage-mod is a Claude Code mod that keeps a **Usage** pane beside the chat and a one-line summary under the prompt. It runs inside the session, so there is no separate app to open, no account and nothing to configure.
+
+## What you get
+
+### Session
+
+The session's cost, then bars for context, the 5-hour limit and the 7-day limit, each with its reset time. Below them are three sections you can collapse:
+
+- **Prompts**: each prompt's request count and cost, plus the most expensive one.
+- **Breakdown**: main thread against subagents, and by model.
+- **Tokens**: new input, cache read, cache write and output, with a sparkline of the last 20 requests' context size.
+
+It warns you when every request is re-sending a large context.
+
+### Live
+
+The turn in progress: whether Claude is working, its prompt, requests, tool calls, tokens and cost so far, and the most recent tools.
+
+### History
+
+The last 30 days:
+
+- Totals for today, 7 days and 30 days.
+- This week and this month against the previous one (▲ up, ▼ down, as a %, coloured by the trend).
+- This week's spend by model and by project.
+- A heatmap of daily spend, your streak and your busiest day.
+- Your daily budget, and every session grouped by day.
+- **Export CSV** saves it all to a file.
+
+### Status line
+
+A summary sits under the prompt:
+
+```
+ctx 15% · $4.26 · 5h 12% · 7d 3%
+```
+
+`/usage-status full` leads with the limits and when they reset, then today's spend against your budget:
+
+```
+5h 12% ↺3h37m · 7d 3% ↺4d8h · today $3.12/$10.00 · $4.26 · ctx 15%
+```
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `/usage-pane` | Reopens the pane. Switch tabs with the buttons or the hotkeys 1, 2 and 3 while the pane has focus. |
+| `/usage-budget 10` | Sets a daily budget in dollars. A toast appears at 80% and at 100%. `off` turns it off; no argument shows where you stand. |
+| `/usage-status full` | Shows the longer status line. `compact` goes back to the short one, `off` hides it, and no argument flips between compact and full. Your choice is kept. |
+| `/usage-export` | Saves the history as `usage-history-<date>.csv` in the working directory. |
 
 ## Install
 
@@ -32,8 +95,39 @@ claude plugin install usage-mod --marketplace ctrivedi-ai/usage-mod
 
 In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `ctrivedi-ai/usage-mod`, then Add plugin.
 
-Not affiliated with or endorsed by Anthropic.
+## Questions
 
-## Secret scanning
+**I pay a flat fee for a subscription. Why does it show dollars?**
+The dollars are what the session would cost at API prices. On a subscription they are an estimate of value, not what you are billed. The 5-hour and 7-day bars are the figures that matter for your plan.
+
+**I keep hitting my 5-hour or weekly limit. Can I see it coming?**
+Yes. Both limits are bars in the pane with the time until they reset, and both are in the status line, so you can check before a long run.
+
+**Which prompt cost the most?**
+Open Prompts on the Session tab. Every prompt is listed with its request count and cost, and the most expensive is called out.
+
+**Do my subagents cost more than the main thread?**
+Breakdown on the Session tab splits the session's cost between the main thread and subagents, and by model.
+
+**Why did a short question cost so much?**
+Usually because the context is large and every request re-sends it. The pane warns you when that is happening, and the Tokens sparkline shows the context growing.
+
+**How accurate are the numbers?**
+The session total is Claude Code's own figure. The shares of it (per prompt, per kind of token, per model) are estimates from each request's token counts and Anthropic's price ratios, and they add up to that total.
+
+**Does it show sessions from before I installed it?**
+No. History covers sessions where the mod was running, and prompts are itemised from the moment it loads.
+
+## Private by design
+
+usage-mod makes no network calls. It reads what Claude Code gives a mod about the current session and keeps its history in the mod's own local store. The only file it writes is the CSV you ask for.
+
+## Contributing
+
+Bug reports and ideas are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md) and the [changelog](CHANGELOG.md). Security reports go through [SECURITY.md](SECURITY.md).
 
 Every push and pull request runs [gitleaks](https://github.com/gitleaks/gitleaks) over the full history (`.github/workflows/secret-scan.yml`). To scan before you commit, install [pre-commit](https://pre-commit.com) and run `pre-commit install`.
+
+## License
+
+MIT. Not affiliated with or endorsed by Anthropic.
