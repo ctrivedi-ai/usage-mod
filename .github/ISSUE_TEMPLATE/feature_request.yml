@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest something new for usage-mod, or a change to something it does.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you want to do
+      description: The question you want answered or the task you're trying to get done, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: What you'd like usage-mod to do. A sketch or mock-up is welcome.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where it fits
+      options:
+        - Session tab
+        - Live tab
+        - History tab
+        - Status line
+        - Header badge
+        - New slash command
+        - Something else
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Other ways you've considered
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Helping out
+      options:
+        - label: I'd like to work on this myself and send a pull request.
