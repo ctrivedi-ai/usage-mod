@@ -5,7 +5,7 @@ import type { Bucket, HistoryRow, Ledger, Live, Snapshot, StatusStyle, Tab, View
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.9.11'
+const VERSION = '0.9.12'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
