@@ -1,5 +1,8 @@
 export type RateWindow = { kind: string; percentUsed: number; resetsAt?: string }
 
+/** One reading of a rate limit: when (ms) and how full (%). */
+export type PaceSample = { t: number; pct: number }
+
 export type Snapshot = {
   contextTokens?: number
   contextWindow: number
@@ -69,6 +72,7 @@ declare module 'claude-code' {
       sessionId: string
       budget: number
       statusStyle: StatusStyle
+      pace: Record<string, PaceSample[]>
     }
   }
 }

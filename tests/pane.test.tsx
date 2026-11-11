@@ -18,7 +18,12 @@ const PANE = {
 const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
 
 // Everything beneath the plugin: each hook stands for the engine.
-const engine = (on: On, onStatus: (text: string | undefined) => void = () => {}, stored: Record<string, unknown> = {}) => {
+const engine = (
+  on: On,
+  onStatus: (text: string | undefined) => void = () => {},
+  stored: Record<string, unknown> = {},
+  clock: () => number = () => Date.parse('2026-01-01T00:00:00Z'),
+) => {
   // What the plugin showed and wrote, for the tests to read.
   const seen = { toasts: [] as string[], files: {} as Record<string, string> }
   mock.store(on, stored)
@@ -29,7 +34,7 @@ const engine = (on: On, onStatus: (text: string | undefined) => void = () => {},
   on('command.register', () => ({ value: { command: 'usage-pane' } }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('ui.status', (_, e) => (onStatus(e.text), { value: undefined }))
-  on('clock.now', () => ({ value: Date.parse('2026-01-01T00:00:00Z') }))
+  on('clock.now', () => ({ value: clock() }))
   on('session.id', () => ({ value: 'session-1' }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 200_000 }, rateLimits: [] } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
@@ -88,7 +93,7 @@ test('the session tab shows cost, limits, prompts, breakdown and tokens, on ever
     expect(await ui.find({ type: 'Text', text: /40k/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /isn't billed per token/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /tokens of context per request/ })).toBeUndefined()
-    expect(await ui.find({ type: 'Text', text: /usage-mod v0.9.12/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /usage-mod v0.10.0/ })).toBeDefined()
     await ui.unmount()
   }
 })
@@ -340,4 +345,69 @@ test('a model saved under its full id before v0.9.9 shows under its family name'
   expect(await ui.find({ type: 'Text', text: /claude-fable/ })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /25% \$1\.00/ })).toBeDefined()
   await ui.unmount()
+})
+
+test('a limit that will be reached before it resets shows a forecast in the pane and the status line', async ($, on) => {
+  const now = Date.parse('2026-01-01T00:00:00Z')
+  const lines: (string | undefined)[] = []
+  const seen = engine(on, text => lines.push(text))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  // Two hours into the window and 60% used: 30% an hour, so 100% in 1h20m, with 3h to go.
+  // The 7-day limit is on course for 70% by its reset, so it gets no forecast.
+  await $.session.measure({
+    context: { tokens: 45_000, window: 200_000, percent: 23 },
+    cost: { usd: 1 },
+    rateLimits: [
+      { kind: 'five_hour', percentUsed: 60, resetsAt: new Date(now + 3 * 3_600_000).toISOString() },
+      { kind: 'seven_day', percentUsed: 10, resetsAt: new Date(now + 6 * 24 * 3_600_000).toISOString() },
+    ],
+    changed: ['context', 'cost', 'rateLimits'],
+  })
+
+  expect(lines.at(-1)).toBe('ctx 23% · $1.00 · 5h 60% ⚑1h20m · 7d 10%')
+  // 1h20m away is not yet "soon", so no toast.
+  expect(seen.toasts).toEqual([])
+
+  for (const surface of SURFACES) {
+    const ui = await $.ui.mount({ ...PANE, surface })
+    expect(await ui.find({ type: 'Text', text: /⚑ 5h limit in ~1h20m at this pace \(resets in 3h0m\)/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /7d limit in/ })).toBeUndefined()
+    await ui.unmount()
+  }
+
+  await $.command.run({ command: 'usage-status', args: 'full' })
+  expect(lines.at(-1)).toMatch(/^5h 60% ⚑1h20m ↺3h0m · 7d 10% ↺6d0h · /)
+})
+
+test('the forecast follows the recent pace, and toasts once when the limit is close', async ($, on) => {
+  const start = Date.parse('2026-01-01T00:00:00Z')
+  let now = start
+  const seen = engine(on, undefined, {}, () => now)
+  const measure = (percentUsed: number) =>
+    $.session.measure({
+      context: { tokens: 45_000, window: 200_000, percent: 23 },
+      cost: { usd: 1 },
+      rateLimits: [{ kind: 'five_hour', percentUsed, resetsAt: new Date(start + 3_600_000).toISOString() }],
+      changed: ['context', 'cost', 'rateLimits'],
+    })
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+
+  // Four hours in at 50%: the window so far points to 63% by the reset, so nothing to say.
+  await measure(50)
+  let ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await ui.find({ type: 'Text', text: /limit in ~/ })).toBeUndefined()
+  await ui.unmount()
+
+  // Ten minutes later it's 70%: 2% a minute, so 15 minutes to go, with 50 until the reset.
+  now = start + 10 * 60_000
+  await measure(70)
+  ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await ui.find({ type: 'Text', text: /⚑ 5h limit in ~15m at this pace \(resets in 50m\)/ })).toBeDefined()
+  await ui.unmount()
+  expect(seen.toasts).toEqual(["⚑ At this pace you'll reach the 5h limit in about 15m"])
+
+  // The same window doesn't toast again.
+  now = start + 12 * 60_000
+  await measure(74)
+  expect(seen.toasts.length).toBe(1)
 })
