@@ -64,6 +64,12 @@ The last 30 days:
 - Your daily budget, and every session grouped by day.
 - **Export CSV** saves it all to a file.
 
+### Guard
+
+The mod watches each turn's tool calls and tells you when Claude is going round in circles: a toast when the same call is made 5 times in a row, or when the same call fails 3 times. Nothing is stopped unless you ask for it.
+
+`/usage-guard stop` makes it act. It refuses a call made more than 8 times in a row, a call that has failed 5 times in the turn, and every tool call once your daily budget is reached. Claude is told why each call was refused, so it can try something else or tell you. The Live tab shows how many calls were stopped.
+
 ### Status line
 
 A summary sits under the prompt:
@@ -85,6 +91,7 @@ ctx 15% · $4.26 · 5h 12% · 7d 3%
 | `/usage-pane` | Reopens the pane. Switch tabs with the buttons or the hotkeys 1, 2 and 3 while the pane has focus. |
 | `/usage-budget 10` | Sets a daily budget in dollars. A toast appears at 80% and at 100%. `off` turns it off; no argument shows where you stand. |
 | `/usage-status full` | Shows the longer status line. `compact` goes back to the short one, `off` hides it, and no argument flips between compact and full. Your choice is kept. |
+| `/usage-guard stop` | Refuses a tool call that is looping or keeps failing, and every tool call once the daily budget is reached. `warn` (the default) only shows a toast, `off` turns the guard off, and no argument shows the setting. Your choice is kept. |
 | `/usage-export` | Saves the history as `usage-history-<date>.csv` in the working directory. |
 
 ## Install

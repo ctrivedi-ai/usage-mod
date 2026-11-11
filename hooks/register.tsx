@@ -1,11 +1,24 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, SessionContextUsage, SessionCost, SessionRateLimit, TurnUsage } from 'claude-code'
 
-import type { Bucket, HistoryRow, Ledger, Live, PaceSample, RateWindow, Snapshot, StatusStyle, Tab, View } from '../types'
+import type {
+  Bucket,
+  GuardMode,
+  HistoryRow,
+  Ledger,
+  Live,
+  PaceSample,
+  RateWindow,
+  Snapshot,
+  StatusStyle,
+  Tab,
+  View,
+  Watch,
+} from '../types'
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.10.0'
+const VERSION = '0.11.0'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -58,6 +71,11 @@ const budget = atom({ plugin: 'usage-mod', key: 'budget' } as const, 0)
 const statusStyle = atom({ plugin: 'usage-mod', key: 'statusStyle' } as const, 'compact' as StatusStyle)
 // Each rate limit's recent readings, by kind, for the forecast; this session only.
 const pace = atom({ plugin: 'usage-mod', key: 'pace' } as const, {} as Record<string, PaceSample[]>)
+// The guard: warn about a looping or failing tool call, stop it as well, or neither; kept in the store.
+const guard = atom({ plugin: 'usage-mod', key: 'guard' } as const, 'warn' as GuardMode)
+// What the guard has seen of this turn's tool calls.
+const NO_WATCH: Watch = { last: '', repeats: 0, fails: {}, blocked: 0 }
+const watch = atom({ plugin: 'usage-mod', key: 'watch' } as const, NO_WATCH)
 
 const toSnapshot = (u: {
   context: SessionContextUsage
@@ -453,6 +471,34 @@ const parseBudget = (args: string) => {
 
 type BudgetAlert = { day: string; level: number }
 
+// The guard warns when one call is made this many times running, or has
+// failed this many times, in a turn; in stop mode it refuses the call once
+// past the higher count.
+const LOOP_WARN = 5
+const LOOP_STOP = 8
+const FAIL_WARN = 3
+const FAIL_STOP = 5
+const GUARD_MODES: GuardMode[] = ['warn', 'stop', 'off']
+
+/**
+ * One call's identity: its tool and a hash of its arguments, leaving out what
+ * differs on every call (its id) or isn't the tool's (consent, request meta).
+ */
+const signature = (e: { tool: string }) => {
+  const { tool_use_id: _id, consent: _consent, requestMeta: _meta, ...args } = e as Record<string, unknown>
+  const text = JSON.stringify(args) ?? ''
+  let hash = 5381
+  for (let i = 0; i < text.length; i++) hash = ((hash * 33) ^ text.charCodeAt(i)) >>> 0
+  return `${e.tool}:${text.length}:${hash.toString(36)}`
+}
+
+const guardNote = (mode: GuardMode) =>
+  mode === 'stop'
+    ? `Guard is set to stop: it warns as below, then refuses a tool call made more than ${LOOP_STOP} times running or one that has failed ${FAIL_STOP} times in a turn, and every tool call once today's budget is reached.`
+    : mode === 'warn'
+      ? `Guard is set to warn: a toast when a tool call is made ${LOOP_WARN} times running, or fails ${FAIL_WARN} times, in a turn. Nothing is stopped.`
+      : 'Guard is off.'
+
 const sparkText = (values: number[]) => {
   const ticks = '▁▂▃▄▅▆▇█'
   const max = Math.max(1, ...values)
@@ -531,6 +577,46 @@ const checkLimits = async ($: EngineInterface, s: Snapshot, now: number) => {
   }
 }
 
+/**
+ * Before a tool call runs: counts it, warns when it's the same call over and
+ * over, and in stop mode answers with why the call is refused.
+ */
+const guardBefore = async ($: EngineInterface, e: { tool: string }) => {
+  const mode = await read($, guard)
+  if (mode === 'off') return undefined
+  const sig = signature(e)
+  const w = await read($, watch)
+  const repeats = w.last === sig ? w.repeats + 1 : 1
+  const refuse = async (why: string) => {
+    await update($, watch, x => ({ ...x, blocked: x.blocked + 1 }))
+    return `usage-mod guard: ${why}`
+  }
+  if (mode === 'stop') {
+    const limit = await read($, budget)
+    const spent = limit > 0 ? spentToday(await read($, history), await $.clock.now()) : 0
+    if (limit > 0 && spent >= limit)
+      return refuse(
+        `today's budget of ${money(limit)} is reached (${money(spent)} spent), so tool calls are stopped. Tell the user; they can raise it with /usage-budget or lift the stop with /usage-guard warn.`,
+      )
+    if (repeats > LOOP_STOP)
+      return refuse(`this exact ${e.tool} call has been made ${LOOP_STOP} times in a row. Don't repeat it: try something else, or ask the user.`)
+    if ((w.fails[sig] ?? 0) >= FAIL_STOP)
+      return refuse(`this exact ${e.tool} call has failed ${FAIL_STOP} times this turn. Don't retry it: try something else, or ask the user.`)
+  }
+  await update($, watch, x => ({ ...x, last: sig, repeats }))
+  if (repeats === LOOP_WARN) $.ui.toast(`⚑ ${e.tool} has made the same call ${LOOP_WARN} times in a row this turn`, { timeoutMs: 8000 })
+  return undefined
+}
+
+/** After a tool call failed: counts the failure, and warns when the same call keeps failing. */
+const guardFailed = async ($: EngineInterface, e: { tool: string }) => {
+  if ((await read($, guard)) === 'off') return
+  const sig = signature(e)
+  const fails = ((await read($, watch)).fails[sig] ?? 0) + 1
+  await update($, watch, x => ({ ...x, fails: { ...x.fails, [sig]: fails } }))
+  if (fails === FAIL_WARN) $.ui.toast(`⚑ The same ${e.tool} call has failed ${FAIL_WARN} times this turn`, { timeoutMs: 8000 })
+}
+
 const STATUS_STYLES: StatusStyle[] = ['compact', 'full', 'off']
 
 export const register: Register = on => {
@@ -540,6 +626,9 @@ export const register: Register = on => {
     await $.command.register({ name: 'usage-budget', description: 'Set a daily budget in dollars: /usage-budget 10, or off' })
     await $.command.register({ name: 'usage-export', description: 'Save the usage history as a CSV file' })
     await $.command.register({ name: 'usage-status', description: 'Status line detail: /usage-status compact, full or off' })
+    await $.command.register({ name: 'usage-guard', description: 'Loop, retry and budget guard: /usage-guard warn, stop or off' })
+    const storedGuard = await $.store.get('guard').catch(() => undefined)
+    if (GUARD_MODES.includes(storedGuard as GuardMode)) await update($, guard, () => storedGuard as GuardMode)
     const storedBudget = await $.store.get('budget').catch(() => undefined)
     if (typeof storedBudget === 'number') await update($, budget, () => storedBudget)
     const storedStyle = await $.store.get('statusStyle').catch(() => undefined)
@@ -603,6 +692,15 @@ export const register: Register = on => {
           ? 'Status line turned off. Bring it back with /usage-status compact or full.'
           : `Status line set to ${next}.`,
     }
+  })
+
+  on('command.run', { command: 'usage-guard' }, async ($, e) => {
+    const arg = e.args.trim().toLowerCase()
+    if (arg === '') return { text: `${guardNote(await read($, guard))} Change it with /usage-guard warn, stop or off.` }
+    if (!GUARD_MODES.includes(arg as GuardMode)) return { text: `Unknown mode "${arg}". Use /usage-guard warn, stop or off.` }
+    await update($, guard, () => arg as GuardMode)
+    await $.store.set('guard', arg)
+    return { text: guardNote(arg as GuardMode) }
   })
 
   on('command.run', { command: 'usage-export' }, async $ => {
@@ -673,6 +771,7 @@ export const register: Register = on => {
         tokens: EMPTY,
         weight: 0,
       })).catch(() => undefined)
+      await update($, watch, () => NO_WATCH).catch(() => undefined)
     }
 
     return next(e)
@@ -717,8 +816,14 @@ export const register: Register = on => {
       () => undefined,
     )
 
-    return next(e)
-  })
+    // The guard never holds up a call by failing: an error in it lets the call through.
+    const why = await guardBefore($, e).catch(() => undefined)
+    if (why) return { deny: why }
+    const ran = await next(e)
+    if (ran.deny === undefined && ran.isError === true) await guardFailed($, e).catch(() => undefined)
+
+    return ran
+  }).catch((_, e, next) => next(e))
 
   on('turn.complete', async ($, e, next) => {
     if (!e.agentId) {
@@ -741,6 +846,7 @@ export const register: Register = on => {
     const l = await read($, ledger)
     const v = await read($, view)
     const lv = await read($, live)
+    const w = await read($, watch)
     const rows = await read($, history)
     const id = await read($, sessionId)
     const now = await $.clock.now()
@@ -990,6 +1096,12 @@ export const register: Register = on => {
           </Box>
 
           {limits}
+
+          {w.blocked > 0 && (
+            <Text color={RED}>
+              ⚑ Guard stopped {w.blocked} tool call{w.blocked === 1 ? '' : 's'} this turn
+            </Text>
+          )}
 
           <Box flexDirection="column">
             <Text color={ORANGE} bold>
