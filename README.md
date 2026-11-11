@@ -1,5 +1,7 @@
 # usage-mod
 
+[![Secret scan](https://github.com/ctrivedi-ai/usage-mod/actions/workflows/secret-scan.yml/badge.svg?branch=main)](https://github.com/ctrivedi-ai/usage-mod/actions/workflows/secret-scan.yml)
+
 A Claude Code mod that keeps a **Usage** pane beside the chat, with a small meter badge in the header that moves while Claude works. Switch tabs with the buttons or the hotkeys 1, 2 and 3 while the pane has focus.
 
 - **Session**: the session's cost, context and rate-limit bars with reset times, then three sections you can collapse: Prompts (each prompt's request count and cost, plus the most expensive one), Breakdown (main thread vs subagents, and by model) and Tokens (new input, cache read, cache write and output, with a sparkline of the last 20 requests' context size). It warns when every request is re-sending a large context.
