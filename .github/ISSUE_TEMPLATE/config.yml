@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Report a security problem
+  - name: Report a security or conduct problem
     url: https://github.com/ctrivedi-ai/usage-mod/security/advisories/new
-    about: Report security problems privately, not in a public issue.
+    about: Report security problems or Code of Conduct violations privately, not in a public issue.

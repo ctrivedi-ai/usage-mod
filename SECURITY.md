@@ -6,6 +6,8 @@ Please don't open a public issue for a security problem. Report it privately ins
 
 Include what you found, how to reproduce it, and which version of usage-mod you're running (shown in `CHANGELOG.md` and the plugin manifest). You should get a reply within a week.
 
+The same form is used for reporting [Code of Conduct](CODE_OF_CONDUCT.md) violations. Start the title with "Conduct:".
+
 ## Supported versions
 
 Only the latest release gets fixes. Update with `/plugin` (or `claude plugin update usage-mod`) before reporting.
