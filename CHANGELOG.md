@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0
+
+- **Guard.** The mod now watches each turn's tool calls. When the same call is made 5 times in a row, or the same call fails 3 times, a toast says so. This is on by default and stops nothing.
+- `/usage-guard stop` goes further. It refuses a call made more than 8 times in a row, a call that has already failed 5 times in the turn, and every tool call once today's budget (`/usage-budget`) is reached. Claude is told why, so it can change course or tell you. The Live tab shows how many calls were stopped in the turn.
+- `/usage-guard warn` goes back to toasts only, `/usage-guard off` turns the guard off, and `/usage-guard` alone shows the setting. Your choice is kept.
+- Counts start again with each prompt. Two calls are "the same" when the tool and all its arguments match. If the guard itself fails, the call runs as normal.
+
 ## 0.10.0
 
 - **Limit forecast.** When you are on course to reach the 5-hour or 7-day limit before it resets, the pane says so under the bars on the Session and Live tabs: `⚑ 5h limit in ~42m at this pace (resets in 1h50m)`. The line is amber, and red once the limit is close.

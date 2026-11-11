@@ -25,7 +25,8 @@ const engine = (
   clock: () => number = () => Date.parse('2026-01-01T00:00:00Z'),
 ) => {
   // What the plugin showed and wrote, for the tests to read.
-  const seen = { toasts: [] as string[], files: {} as Record<string, string> }
+  // `toolResult` is what every tool call answers; a test sets it to make calls fail.
+  const seen = { toasts: [] as string[], files: {} as Record<string, string>, toolResult: { result: {} } as Record<string, unknown> }
   mock.store(on, stored)
   on('ui.toast', (_, e) => (seen.toasts.push(e.text), { value: undefined }))
   on('session.cwd', () => ({ value: 'C:\\work\\proj' }))
@@ -56,7 +57,7 @@ const engine = (
       },
     } as const
   })
-  on('tool.call', () => ({ result: {} }))
+  on('tool.call', () => seen.toolResult)
   on('turn.complete', (_, e) => ({ text: e.answer }))
   return seen
 }
@@ -93,7 +94,7 @@ test('the session tab shows cost, limits, prompts, breakdown and tokens, on ever
     expect(await ui.find({ type: 'Text', text: /40k/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /isn't billed per token/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /tokens of context per request/ })).toBeUndefined()
-    expect(await ui.find({ type: 'Text', text: /usage-mod v0.10.0/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /usage-mod v0.11.0/ })).toBeDefined()
     await ui.unmount()
   }
 })
@@ -410,4 +411,82 @@ test('the forecast follows the recent pace, and toasts once when the limit is cl
   now = start + 12 * 60_000
   await measure(74)
   expect(seen.toasts.length).toBe(1)
+})
+
+test('the guard warns when a call repeats or keeps failing, and stops nothing by default', async ($, on) => {
+  const seen = engine(on)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.turn.start({ text: 'Fix the build', turnId: 't1' })
+
+  // The same call five times running: one toast, and every call still runs.
+  for (let i = 0; i < 6; i++) expect((await $.tool.call({ tool: 'Read', file_path: '/a.ts' })).deny).toBeUndefined()
+  expect(seen.toasts).toEqual(['⚑ Read has made the same call 5 times in a row this turn'])
+
+  // A call that fails three times, with other calls in between: one more toast.
+  seen.toolResult = { result: {}, isError: true }
+  for (let i = 0; i < 4; i++) {
+    await $.tool.call({ tool: 'Bash', command: 'npm test' })
+    await $.tool.call({ tool: 'Bash', command: `echo ${i}` })
+  }
+  expect(seen.toasts.at(-1)).toBe('⚑ The same Bash call has failed 3 times this turn')
+  expect(seen.toasts.length).toBe(2)
+
+  // A new turn starts the counts again.
+  seen.toolResult = { result: {} }
+  await $.turn.start({ text: 'Again', turnId: 't2' })
+  for (let i = 0; i < 4; i++) await $.tool.call({ tool: 'Read', file_path: '/a.ts' })
+  expect(seen.toasts.length).toBe(2)
+
+  const shown = await $.command.run({ command: 'usage-guard', args: '' })
+  expect(shown.text).toMatch(/^Guard is set to warn/)
+})
+
+test('/usage-guard stop refuses a looping call, a call that keeps failing, and every call past the budget', async ($, on) => {
+  const seen = engine(on)
+  await oneTurn($)
+  const set = await $.command.run({ command: 'usage-guard', args: 'stop' })
+  expect(set.text).toMatch(/^Guard is set to stop/)
+
+  // Eight in a row run; the ninth is refused, and a different call still runs.
+  await $.turn.start({ text: 'Loop', turnId: 't2' })
+  for (let i = 0; i < 8; i++) expect((await $.tool.call({ tool: 'Read', file_path: '/a.ts' })).deny).toBeUndefined()
+  expect((await $.tool.call({ tool: 'Read', file_path: '/a.ts' })).deny).toMatch(/^usage-mod guard: this exact Read call has been made 8 times in a row/)
+  expect((await $.tool.call({ tool: 'Read', file_path: '/b.ts' })).deny).toBeUndefined()
+
+  // Five failures of one call, then it is refused.
+  seen.toolResult = { result: {}, isError: true }
+  for (let i = 0; i < 5; i++) {
+    expect((await $.tool.call({ tool: 'Bash', command: 'npm test' })).deny).toBeUndefined()
+    await $.tool.call({ tool: 'Bash', command: `echo ${i}` })
+  }
+  expect((await $.tool.call({ tool: 'Bash', command: 'npm test' })).deny).toMatch(/has failed 5 times this turn/)
+  seen.toolResult = { result: {} }
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'tab-live' })
+  expect(await ui.find({ type: 'Text', text: /⚑ Guard stopped 2 tool calls this turn/ })).toBeDefined()
+  await ui.press({ key: 'tab-session' })
+  await ui.unmount()
+
+  // $1 is spent today: a budget of $0.50 stops every tool call, and lifting it lets them run.
+  await $.command.run({ command: 'usage-budget', args: '0.50' })
+  expect((await $.tool.call({ tool: 'Read', file_path: '/c.ts' })).deny).toMatch(/today's budget of \$0\.50 is reached \(\$1\.00 spent\)/)
+  await $.command.run({ command: 'usage-budget', args: 'off' })
+  expect((await $.tool.call({ tool: 'Read', file_path: '/c.ts' })).deny).toBeUndefined()
+
+  // Off stops and warns about nothing.
+  await $.command.run({ command: 'usage-guard', args: 'off' })
+  const before = seen.toasts.length
+  for (let i = 0; i < 12; i++) expect((await $.tool.call({ tool: 'Read', file_path: '/d.ts' })).deny).toBeUndefined()
+  expect(seen.toasts.length).toBe(before)
+
+  const bad = await $.command.run({ command: 'usage-guard', args: 'maybe' })
+  expect(bad.text).toMatch(/^Unknown mode "maybe"/)
+})
+
+test('a stored guard mode carries over to a new session', async ($, on) => {
+  engine(on, undefined, { guard: 'stop' })
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const shown = await $.command.run({ command: 'usage-guard', args: '' })
+  expect(shown.text).toMatch(/^Guard is set to stop/)
 })

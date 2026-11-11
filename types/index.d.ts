@@ -46,7 +46,16 @@ export type Tab = 'session' | 'live' | 'history'
 /** How much the status line under the prompt says. */
 export type StatusStyle = 'compact' | 'full' | 'off'
 
-export type View = { tab: Tab; closed: string[] }
+/** The guard: warn about a looping or failing tool call, stop it as well, or neither. */
+export type GuardMode = 'warn' | 'stop' | 'off'
+
+/**
+ * What the guard has seen this turn: the last call's signature and how many
+ * times running it has been made, failures per signature, and calls refused.
+ */
+export type Watch = { last: string; repeats: number; fails: Record<string, number>; blocked: number }
+
+export type View ={ tab: Tab; closed: string[] }
 
 // `project` is the session's working directory and `models` its cost in dollars per
 // model family; rows written before v0.8.0 have neither.
@@ -73,6 +82,8 @@ declare module 'claude-code' {
       budget: number
       statusStyle: StatusStyle
       pace: Record<string, PaceSample[]>
+      guard: GuardMode
+      watch: Watch
     }
   }
 }
