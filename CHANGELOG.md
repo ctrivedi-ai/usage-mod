@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.3
+
+- The README now says that the mod's `command.run` hooks only answer its own five slash commands. Nothing in the mod changed.
+
 ## 0.11.2
 
 - **Export file name.** `/usage-export` and the Export CSV button now save `usage-history.csv` in the working directory, without the date in the name. A new export replaces the last one there.
