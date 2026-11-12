@@ -92,7 +92,7 @@ ctx 15% · $4.26 · 5h 12% · 7d 3%
 | `/usage-budget 10` | Sets a daily budget in dollars. A toast appears at 80% and at 100%. `off` turns it off; no argument shows where you stand. |
 | `/usage-status full` | Shows the longer status line. `compact` goes back to the short one, `off` hides it, and no argument flips between compact and full. Your choice is kept. |
 | `/usage-guard stop` | Refuses a tool call that is looping or keeps failing, and every tool call once the daily budget is reached. `warn` (the default) only shows a toast, `off` turns the guard off, and no argument shows the setting. Your choice is kept. |
-| `/usage-export` | Saves the history as `usage-history-<date>.csv` in the working directory. |
+| `/usage-export` | Saves the history as `usage-history.csv` in the working directory, replacing the last export there. |
 
 ## Install
 
@@ -135,7 +135,13 @@ No. History covers sessions where the mod was running, and prompts are itemised 
 
 ## Private by design
 
-usage-mod makes no network calls. It reads what Claude Code gives a mod about the current session and keeps its history in the mod's own local store. The only file it writes is the CSV you ask for.
+usage-mod makes no network calls. It reads what Claude Code gives a mod about the current session and keeps its history in the mod's own local store. 
+
+**What it writes.** One file, and only when you ask: `usage-history.csv` in the session's working directory, from `/usage-export` or the Export CSV button. It is a plain table of your sessions. The mod never writes a build, start-up, settings or instructions file.
+
+**What it hooks.** The mod listens to the session's events to count cost, tokens and tool calls, and it does not change them. The one exception is the guard: with `/usage-guard stop`, its `tool.call` hook refuses a tool call that is looping, keeps failing or comes after the daily budget is reached. With the default `warn`, and with `off`, every tool call runs as it would without the mod.
+
+**What it adds.** Five slash commands, listed under [Commands](#commands). It adds no tools and no agents.
 
 ## Contributing
 

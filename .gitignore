@@ -2,7 +2,7 @@
 .claude-plugin/types/
 
 # CSV files written by /usage-export
-usage-history-*.csv
+usage-history*.csv
 
 # Editor and OS clutter
 .vscode/

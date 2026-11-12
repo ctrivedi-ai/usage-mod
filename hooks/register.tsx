@@ -18,7 +18,7 @@ import type {
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.11.1'
+const VERSION = '0.11.2'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -170,9 +170,9 @@ const short = (text: string, max: number) => {
 
 const span = (ms: number) => {
   const mins = Math.max(0, Math.round(ms / 60_000))
-  const h = Math.floor(mins / 60)
-  if (h >= 24) return `${Math.floor(h / 24)}d${h % 24}h`
-  return h > 0 ? `${h}h${mins % 60}m` : `${mins}m`
+  const hours = Math.floor(mins / 60)
+  if (hours >= 24) return `${Math.floor(hours / 24)}d${hours % 24}h`
+  return hours > 0 ? `${hours}h${mins % 60}m` : `${mins}m`
 }
 
 /** A reset time in ms: an ISO string, or epoch seconds or milliseconds as digits. */
@@ -296,12 +296,12 @@ const iconSvg = (px: number, isRunning: boolean) => {
   const bottom = 2 * px + inner
   const bars = ICON_BARS.map((f, i) => {
     const x = left + i * (barW + gap)
-    const h = f * inner
+    const barH = f * inner
     const anim = isRunning
-      ? `<animate attributeName="height" values="${h};${inner * 0.3};${h}" dur="0.9s" begin="${i * 0.15}s" repeatCount="indefinite"/>` +
-        `<animate attributeName="y" values="${bottom - h};${bottom - inner * 0.3};${bottom - h}" dur="0.9s" begin="${i * 0.15}s" repeatCount="indefinite"/>`
+      ? `<animate attributeName="height" values="${barH};${inner * 0.3};${barH}" dur="0.9s" begin="${i * 0.15}s" repeatCount="indefinite"/>` +
+        `<animate attributeName="y" values="${bottom - barH};${bottom - inner * 0.3};${bottom - barH}" dur="0.9s" begin="${i * 0.15}s" repeatCount="indefinite"/>`
       : ''
-    return `<rect x="${x}" y="${bottom - h}" width="${barW}" height="${h}" rx="${px / 2}">${anim}</rect>`
+    return `<rect x="${x}" y="${bottom - barH}" width="${barW}" height="${barH}" rx="${px / 2}">${anim}</rect>`
   }).join('')
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="${ORANGE}">` +
@@ -313,11 +313,11 @@ const iconSvg = (px: number, isRunning: boolean) => {
 
 const sparkSvg = (values: number[]) => {
   const w = 320
-  const h = 28
+  const height = 28
   const max = Math.max(1, ...values)
   const step = values.length > 1 ? w / (values.length - 1) : w
-  const points = values.map((v, i) => `${(i * step).toFixed(1)},${(h - 2 - (v / max) * (h - 4)).toFixed(1)}`).join(' ')
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="${ORANGE}" stroke-width="2" stroke-linejoin="round"/></svg>`
+  const points = values.map((v, i) => `${(i * step).toFixed(1)},${(height - 2 - (v / max) * (height - 4)).toFixed(1)}`).join(' ')
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${height}" viewBox="0 0 ${w} ${height}" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="${ORANGE}" stroke-width="2" stroke-linejoin="round"/></svg>`
 }
 
 // The heatmap: a column per week, a row per weekday (Sunday on top), like /stats.
@@ -344,7 +344,7 @@ const heatSvg = (values: number[], firstDay: number) => {
   const cells = heatCells(values, firstDay)
   const weeks = (cells.at(-1)?.col ?? 0) + 1
   const w = HEAT_LEFT + weeks * (CELL + CELL_GAP) - CELL_GAP
-  const h = 7 * (CELL + CELL_GAP) - CELL_GAP
+  const height = 7 * (CELL + CELL_GAP) - CELL_GAP
   const labels = [1, 3, 5]
     .map(r => `<text x="0" y="${r * (CELL + CELL_GAP) + CELL - 3}" font-size="10" fill="${MID_GRAY}" font-family="system-ui,'Segoe UI',sans-serif">${WEEKDAYS[r]}</text>`)
     .join('')
@@ -358,7 +358,7 @@ const heatSvg = (values: number[], firstDay: number) => {
       )
     })
     .join('')
-  return { w, h, source: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${labels}${squares}</svg>` }
+  return { w, height, source: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${height}" viewBox="0 0 ${w} ${height}">${labels}${squares}</svg>` }
 }
 
 /** The same grid in text for the terminal: one line per weekday. */
@@ -380,7 +380,7 @@ const legendSvg = () => {
   const size = 10
   const w = HEAT.length * (size + 2) - 2
   const squares = HEAT.map((fill, i) => `<rect x="${i * (size + 2)}" y="0" width="${size}" height="${size}" rx="2" fill="${fill}"/>`)
-  return { w, h: size, source: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${size}" viewBox="0 0 ${w} ${size}">${squares.join('')}</svg>` }
+  return { w, height: size, source: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${size}" viewBox="0 0 ${w} ${size}">${squares.join('')}</svg>` }
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
@@ -505,14 +505,17 @@ const sparkText = (values: number[]) => {
   return values.map(v => ticks[Math.min(7, Math.floor((v / max) * 7.99))]).join('')
 }
 
-/** Writes the history to a CSV in the working directory and returns its path. */
+/**
+ * Writes the history to `usage-history.csv` in the working directory and returns
+ * where that is. The name is fixed text in the call, and a relative path lands
+ * under the session's working directory, so this is the only file the mod can write.
+ */
 const exportHistory = async ($: EngineInterface) => {
   const rows = await read($, history)
-  const now = await $.clock.now()
+  await $.fs.write('usage-history.csv', historyCsv(rows))
   const cwd = await $.session.cwd()
   const sep = cwd.includes('\\') ? '\\' : '/'
-  const path = `${cwd.replace(/[\\/]$/, '')}${sep}usage-history-${dayKey(now)}.csv`
-  await $.fs.write(path, historyCsv(rows))
+  const path = `${cwd.replace(/[\\/]$/, '')}${sep}usage-history.csv`
   return { path, count: rows.length }
 }
 
@@ -1269,7 +1272,7 @@ export const register: Register = on => {
             <Svg
               source={heat.source}
               width={heat.w}
-              height={heat.h}
+              height={heat.height}
               alt={`Cost heatmap for the last ${KEEP_DAYS} days, busiest ${money(daily[peak] ?? 0)}`}
             />
           ) : (
@@ -1284,7 +1287,7 @@ export const register: Register = on => {
           <Box gap={1} alignItems="center">
             <Text color={MUTED}>{dayLabel(firstDay, startOfToday)} → Today · Less</Text>
             {Svg ? (
-              <Svg source={legend.source} width={legend.w} height={legend.h} alt="From no spend to the most" />
+              <Svg source={legend.source} width={legend.w} height={legend.height} alt="From no spend to the most" />
             ) : (
               <Text color={ORANGE}>{HEAT_TEXT.join('')}</Text>
             )}
