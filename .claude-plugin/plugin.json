@@ -1,10 +1,13 @@
 {
   "name": "usage-mod",
-  "version": "0.11.3",
+  "version": "0.11.4",
   "description": "A live pane showing this session's context fill, cost, rate limits, tokens and tool calls",
   "author": { "name": "ctrivedi-ai", "url": "https://github.com/ctrivedi-ai" },
   "homepage": "https://github.com/ctrivedi-ai/usage-mod#readme",
   "repository": "https://github.com/ctrivedi-ai/usage-mod",
+  "documentationUrl": "https://github.com/ctrivedi-ai/usage-mod#readme",
+  "supportUrl": "https://github.com/ctrivedi-ai/usage-mod/issues",
+  "privacyPolicyUrl": "https://github.com/ctrivedi-ai/usage-mod/blob/main/PRIVACY.md",
   "license": "MIT",
   "types": "./types/index.d.ts"
 }
