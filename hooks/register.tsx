@@ -18,7 +18,7 @@ import type {
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.11.2'
+const VERSION = '0.11.3'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'

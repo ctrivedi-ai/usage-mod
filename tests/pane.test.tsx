@@ -94,7 +94,7 @@ test('the session tab shows cost, limits, prompts, breakdown and tokens, on ever
     expect(await ui.find({ type: 'Text', text: /40k/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /isn't billed per token/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /tokens of context per request/ })).toBeUndefined()
-    expect(await ui.find({ type: 'Text', text: /usage-mod v0.11.2/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /usage-mod v0.11.3/ })).toBeDefined()
     await ui.unmount()
   }
 })

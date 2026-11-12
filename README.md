@@ -139,7 +139,7 @@ usage-mod makes no network calls. It reads what Claude Code gives a mod about th
 
 **What it writes.** One file, and only when you ask: `usage-history.csv` in the session's working directory, from `/usage-export` or the Export CSV button. It is a plain table of your sessions. The mod never writes a build, start-up, settings or instructions file.
 
-**What it hooks.** The mod listens to the session's events to count cost, tokens and tool calls, and it does not change them. The one exception is the guard: with `/usage-guard stop`, its `tool.call` hook refuses a tool call that is looping, keeps failing or comes after the daily budget is reached. With the default `warn`, and with `off`, every tool call runs as it would without the mod.
+**What it hooks.** The mod's five `command.run` hooks answer its own slash commands and nothing else: each one is matched to a single `/usage-…` command, so no other command passes through them. The mod also listens to the session's events to count cost, tokens and tool calls, and it does not change them. The one exception is the guard: with `/usage-guard stop`, its `tool.call` hook refuses a tool call that is looping, keeps failing or comes after the daily budget is reached. With the default `warn`, and with `off`, every tool call runs as it would without the mod.
 
 **What it adds.** Five slash commands, listed under [Commands](#commands). It adds no tools and no agents.
 
