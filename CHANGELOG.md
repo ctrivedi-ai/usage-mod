@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.1
+
+- `plugin.json` now names the mod's homepage and repository, so a marketplace or directory listing can link back to them. Nothing else changed.
+
 ## 0.11.0
 
 - **Guard.** The mod now watches each turn's tool calls. When the same call is made 5 times in a row, or the same call fails 3 times, a toast says so. This is on by default and stops nothing.
