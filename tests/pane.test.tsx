@@ -94,7 +94,7 @@ test('the session tab shows cost, limits, prompts, breakdown and tokens, on ever
     expect(await ui.find({ type: 'Text', text: /40k/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /isn't billed per token/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /tokens of context per request/ })).toBeUndefined()
-    expect(await ui.find({ type: 'Text', text: /usage-mod v0.11.1/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /usage-mod v0.11.2/ })).toBeDefined()
     await ui.unmount()
   }
 })
@@ -238,15 +238,17 @@ test('export writes the history as CSV, from the command and the button', async 
   await oneTurn($)
 
   const out = await $.command.run({ command: 'usage-export' })
-  expect(out.text).toMatch(/^Saved 1 session to C:\\work\\proj\\usage-history-\d{4}-\d{2}-\d{2}\.csv$/)
-  const [path, csv] = Object.entries(seen.files)[0] ?? []
+  expect(out.text).toBe('Saved 1 session to C:\\work\\proj\\usage-history.csv')
+  const [name, csv] = Object.entries(seen.files)[0] ?? []
+  // the engine places the fixed, relative name under the working directory
+  expect(name).toMatch(/(^|[\\/])usage-history\.csv$/)
   expect(csv?.split('\n')[0]).toBe('started,last_active,cost_usd,prompts,title,session_id')
   expect(csv).toContain(',1.0000,1,Make the pane colourful,session-1')
 
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   await ui.press({ key: 'tab-history' })
   await ui.press({ key: 'export' })
-  expect(seen.toasts.at(-1)).toBe(`Saved ${path}`)
+  expect(seen.toasts.at(-1)).toBe('Saved C:\\work\\proj\\usage-history.csv')
   await ui.unmount()
 })
 

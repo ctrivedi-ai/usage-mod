@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.2
+
+- **Export file name.** `/usage-export` and the Export CSV button now save `usage-history.csv` in the working directory, without the date in the name. A new export replaces the last one there.
+- The README now says what the mod writes, what it hooks and what it adds.
+- Internal: renamed variables called `h`, a name the plugin directory reserves in a mod's `.tsx` file.
+
 ## 0.11.1
 
 - `plugin.json` now names the mod's homepage and repository, so a marketplace or directory listing can link back to them. Nothing else changed.
