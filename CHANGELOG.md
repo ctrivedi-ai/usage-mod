@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.4
+
+- Added a privacy policy, [PRIVACY.md](PRIVACY.md): what the mod reads, what it keeps on your machine and for how long, and how to remove it. Nothing is sent anywhere.
+- `plugin.json` now links to the privacy policy, the issue tracker for support and the README for documentation. Nothing in the mod changed.
+
 ## 0.11.3
 
 - The README now says that the mod's `command.run` hooks only answer its own five slash commands. Nothing in the mod changed.

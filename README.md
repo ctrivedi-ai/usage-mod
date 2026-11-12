@@ -135,7 +135,7 @@ No. History covers sessions where the mod was running, and prompts are itemised 
 
 ## Private by design
 
-usage-mod makes no network calls. It reads what Claude Code gives a mod about the current session and keeps its history in the mod's own local store. 
+usage-mod makes no network calls. It reads what Claude Code gives a mod about the current session and keeps its history in the mod's own local store. The full detail is in the [Privacy](PRIVACY.md) policy. 
 
 **What it writes.** One file, and only when you ask: `usage-history.csv` in the session's working directory, from `/usage-export` or the Export CSV button. It is a plain table of your sessions. The mod never writes a build, start-up, settings or instructions file.
 
