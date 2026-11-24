@@ -18,7 +18,7 @@ import type {
 
 const PANE = 'usage'
 const TITLE = 'Usage'
-const VERSION = '0.11.4'
+const VERSION = '0.11.5'
 
 // A warm, muted palette; it has no red, so a brick red marks "almost full".
 const ORANGE = '#d97757'
@@ -878,7 +878,7 @@ export const register: Register = on => {
             <Text color={BLUE} bold>
               {label.padEnd(4)}
             </Text>
-            <Text color={level(percent)}>{'█'.repeat(full)}</Text>
+            <Text color={level(percent)}>{'━'.repeat(full)}</Text>
             <Text color={MUTED}>{'─'.repeat(barWidth - full)}</Text>
           </Text>
           <Box flexShrink={0}>

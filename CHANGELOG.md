@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.5
+
+- The ctx, 5h, 7d and daily budget bars fill with a heavy line (`━`) on the thin track instead of full blocks. In the terminal the blocks filled the whole row height, so the stacked bars ran together into one lump. This applies in the desktop app too.
+
 ## 0.11.4
 
 - Added a privacy policy, [PRIVACY.md](PRIVACY.md): what the mod reads, what it keeps on your machine and for how long, and how to remove it. Nothing is sent anywhere.
